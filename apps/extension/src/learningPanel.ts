@@ -9,7 +9,8 @@ type WebviewMessage =
   | { type: "session/complete"; payload: { score: number; durationMs: number } }
   | { type: "tts/unavailable"; payload: { locale: string } }
   | { type: "gemini/setup" }
-  | { type: "gemini/explain"; payload: { chunkId: string } };
+  | { type: "gemini/explain"; payload: { chunkId: string } }
+  | { type: "gemini/explain-line"; payload: { chunkId: string; lineIndex: number } };
 
 export class LearningPanel {
   static open(
@@ -25,6 +26,7 @@ export class LearningPanel {
       { enableScripts: true, retainContextWhenHidden: true, localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, "media")] },
     );
     const explanationCache = new Map<string, Promise<string>>();
+    const lineExplanationCache = new Map<string, Promise<string>>();
     const abortController = new AbortController();
     panel.webview.html = this.html(panel.webview, context.extensionUri);
     panel.webview.onDidReceiveMessage(async (message: WebviewMessage) => {
@@ -80,9 +82,75 @@ export class LearningPanel {
             payload: { chunkId: chunk.id, status: "error", message: messageText },
           });
         }
+      } else if (message.type === "gemini/explain-line") {
+        const chunk = session.chunks.find((item) => item.id === message.payload.chunkId);
+        const lines = chunk?.code.split("\n") ?? [];
+        const lineIndex = message.payload.lineIndex;
+        if (!chunk || !Number.isInteger(lineIndex) || lineIndex < 0 || lineIndex >= lines.length) return;
+        const lineCode = lines[lineIndex] ?? "";
+        const lineKey = `${chunk.id}:line:${lineIndex}`;
+        const cachedText = record?.lineExplanations[lineKey];
+        if (cachedText) {
+          await panel.webview.postMessage({
+            type: "gemini/line-explanation",
+            payload: { chunkId: chunk.id, lineIndex, status: "ready", text: cachedText, source: "local" },
+          });
+          return;
+        }
+        if (!lineCode.trim()) {
+          await panel.webview.postMessage({
+            type: "gemini/line-explanation",
+            payload: { chunkId: chunk.id, lineIndex, status: "error", message: "这一行没有可解释的代码。" },
+          });
+          return;
+        }
+        if (!await gemini.hasApiKey()) {
+          await panel.webview.postMessage({
+            type: "gemini/line-explanation",
+            payload: { chunkId: chunk.id, lineIndex, status: "needs-key" },
+          });
+          return;
+        }
+        let request = lineExplanationCache.get(lineKey);
+        if (!request) {
+          request = gemini.explain(chunk.languageId, lineCode, abortController.signal);
+          lineExplanationCache.set(lineKey, request);
+        }
+        try {
+          const text = await request;
+          if (record) {
+            const model = vscode.workspace.getConfiguration("adhdCodeFocus").get("gemini.model", "gemini-3.5-flash");
+            try {
+              await record.saveLineExplanation(lineKey, text, model);
+              record.lineExplanations[lineKey] = text;
+            } catch (error) {
+              const detail = error instanceof Error ? error.message : String(error);
+              void vscode.window.showWarningMessage(`行级解释已生成，但保存到 D:\\codeLearn 失败：${detail}`);
+            }
+          }
+          await panel.webview.postMessage({
+            type: "gemini/line-explanation",
+            payload: { chunkId: chunk.id, lineIndex, status: "ready", text, source: "api" },
+          });
+        } catch (error) {
+          lineExplanationCache.delete(lineKey);
+          const messageText = error instanceof GeminiApiError ? error.message : "Gemini 行级解释生成失败，请重试。";
+          await panel.webview.postMessage({
+            type: "gemini/line-explanation",
+            payload: { chunkId: chunk.id, lineIndex, status: "error", message: messageText },
+          });
+        }
       }
     });
-    panel.onDidDispose(() => abortController.abort());
+    const settingsListener = vscode.workspace.onDidChangeConfiguration((event) => {
+      if (!event.affectsConfiguration("adhdCodeFocus.tts.autoPlay")) return;
+      const ttsAutoPlay = vscode.workspace.getConfiguration("adhdCodeFocus").get("tts.autoPlay", true);
+      void panel.webview.postMessage({ type: "settings/update", payload: { ttsAutoPlay } });
+    });
+    panel.onDidDispose(() => {
+      abortController.abort();
+      settingsListener.dispose();
+    });
   }
 
   private static async revealSource(uriValue: string, range: SourceRangeDto): Promise<void> {

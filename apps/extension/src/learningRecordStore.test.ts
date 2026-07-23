@@ -23,11 +23,13 @@ describe("learning record store", () => {
     const original = session("session-1");
     const first = await store.open("file:///D:/project/example.ts", "same source", original);
     await first.saveExplanation("chunk-1", "这段代码返回总数。", "gemini-3.5-flash");
+    await first.saveLineExplanation("chunk-1:line:0", "这一行返回总数。", "gemini-3.5-flash");
 
     const restored = await store.open("file:///D:/project/example.ts", "same source", session("session-2"));
     expect(restored.session.id).toBe("session-2");
     expect(restored.session.chunks[0]?.code).toBe("return total;");
     expect(restored.explanations).toEqual({ "chunk-1": "这段代码返回总数。" });
+    expect(restored.lineExplanations).toEqual({ "chunk-1:line:0": "这一行返回总数。" });
     expect(await readdir(testDirectory)).toHaveLength(1);
   });
 });
@@ -36,7 +38,7 @@ function session(id: string): LearningSessionDto {
   return {
     id,
     createdAt: "2026-07-23T00:00:00.000Z",
-    settings: { boldRatio: 0.42, ttsLocale: "en-US", ttsRate: 0.9 },
+    settings: { boldRatio: 0.42, ttsLocale: "en-US", ttsRate: 0.9, ttsAutoPlay: true },
     chunks: [{
       id: "chunk-1",
       title: "Card 1",

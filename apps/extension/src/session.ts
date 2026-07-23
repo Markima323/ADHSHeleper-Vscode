@@ -51,6 +51,7 @@ export function buildLearningSession(
       boldRatio: boldOptions.boldRatio,
       ttsLocale: config.get("tts.locale", "en-US"),
       ttsRate: config.get("tts.rate", 0.9),
+      ttsAutoPlay: config.get("tts.autoPlay", true),
     },
   };
 }

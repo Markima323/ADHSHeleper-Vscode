@@ -2,7 +2,7 @@
   "name": "adhd-code-focus",
   "displayName": "ADHD Code Focus",
   "description": "ADHD 友好的代码视觉锚点、分块学习、德语朗读与点击填空。",
-  "version": "0.3.0",
+  "version": "0.4.0",
   "publisher": "adhd-code-focus",
   "private": true,
   "license": "MIT",
@@ -102,6 +102,9 @@
         },
         "adhdCodeFocus.tts.rate": {
           "type": "number", "default": 0.9, "minimum": 0.5, "maximum": 1.5, "description": "朗读速度。"
+        },
+        "adhdCodeFocus.tts.autoPlay": {
+          "type": "boolean", "default": true, "description": "打开学习卡片时自动朗读；关闭后只在点击英语重播时朗读。"
         },
         "adhdCodeFocus.gemini.model": {
           "type": "string", "default": "gemini-3.5-flash", "description": "用于生成卡片简洁解释的 Gemini 模型 ID。"

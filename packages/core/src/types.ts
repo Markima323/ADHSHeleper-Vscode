@@ -64,5 +64,6 @@ export type LearningSessionDto = {
     boldRatio: number;
     ttsLocale: string;
     ttsRate: number;
+    ttsAutoPlay: boolean;
   };
 };

@@ -32,8 +32,13 @@ h1 { margin: 0; min-width: 0; font-size: clamp(20px, 3vw, 30px); }
 .error-box p { color: var(--vscode-errorForeground); }
 .card, .quiz { border: 1px solid var(--border); border-radius: 10px; background: var(--vscode-sideBar-background); }
 .card { overflow: hidden; }
-pre { margin: 0; padding: 24px; overflow: auto; min-height: 180px; background: var(--vscode-textCodeBlock-background); font: 14px/1.75 var(--vscode-editor-font-family, monospace); tab-size: var(--vscode-editor-tab-size, 4); }
-.code-content { white-space: pre; }
+pre { margin: 0; padding: 18px 24px 18px 10px; overflow: auto; min-height: 180px; background: var(--vscode-textCodeBlock-background); font: 14px/1.75 var(--vscode-editor-font-family, monospace); tab-size: var(--vscode-editor-tab-size, 4); }
+.code-content { display: block; white-space: normal; }
+.code-line { display: grid; grid-template-columns: 22px minmax(max-content, 1fr); min-height: 1.75em; }
+.line-code { display: block; white-space: pre; }
+.line-explain-dot { display: grid; width: 20px; height: 1.75em; padding: 0; place-items: center; border: 0; background: transparent; cursor: pointer; opacity: 0; transition: opacity 100ms ease; }
+.line-explain-dot span { width: 9px; height: 9px; border-radius: 50%; background: var(--vscode-terminal-ansiCyan, #22b8b0); box-shadow: 0 0 0 2px color-mix(in srgb, var(--vscode-terminal-ansiCyan, #22b8b0) 22%, transparent); }
+.code-line:hover .line-explain-dot, .line-explain-dot:focus-visible { opacity: 1; }
 .code-content strong { font-weight: 750; color: inherit; }
 .syntax-keyword { --syntax-color: var(--vscode-symbolIcon-keywordForeground, #c586c0); color: var(--syntax-color); }
 .syntax-function { --syntax-color: var(--vscode-symbolIcon-functionForeground, #dcdcaa); color: var(--syntax-color); }
@@ -58,11 +63,20 @@ pre { margin: 0; padding: 24px; overflow: auto; min-height: 180px; background: v
 .feedback.error { color: var(--vscode-errorForeground); font-weight: 600; }
 .quiz-actions, .page-actions { display: flex; gap: 9px; }
 .page-actions { justify-content: flex-end; margin-top: 20px; }
+.line-explanation-window { position: fixed; z-index: 1000; top: 110px; right: 24px; width: min(390px, calc(100vw - 32px)); max-height: min(520px, calc(100vh - 32px)); overflow: hidden; border: 1px solid var(--vscode-widget-border, var(--border)); border-radius: 9px; color: var(--vscode-editorWidget-foreground, var(--vscode-foreground)); background: var(--vscode-editorWidget-background, var(--vscode-editor-background)); box-shadow: 0 10px 32px var(--vscode-widget-shadow, rgba(0,0,0,.35)); }
+.floating-titlebar { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin: 0; padding: 9px 11px; border-bottom: 1px solid var(--border); font-weight: 700; cursor: move; touch-action: none; user-select: none; }
+.floating-titlebar > span { overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.floating-titlebar button { width: 26px; height: 26px; padding: 0; border: 0; border-radius: 4px; color: var(--vscode-foreground); background: transparent; font-size: 20px; line-height: 1; cursor: pointer; }
+.floating-titlebar button:hover { background: var(--vscode-toolbar-hoverBackground); }
+.floating-content { max-height: 440px; padding: 14px; overflow: auto; }
+.line-code-preview { display: block; margin-bottom: 12px; padding: 8px 10px; overflow: auto; border-radius: 5px; color: var(--vscode-textPreformat-foreground, var(--vscode-editor-foreground)); background: var(--vscode-textCodeBlock-background); white-space: pre; }
+.floating-message, .floating-state p { margin: 0; color: var(--vscode-descriptionForeground); line-height: 1.6; }
+.floating-state { display: grid; gap: 10px; justify-items: start; }
 .primary, .secondary { min-height: 34px; padding: 6px 12px; border-radius: 5px; cursor: pointer; }
 .primary { border: 1px solid var(--vscode-button-border, transparent); color: var(--vscode-button-foreground); background: var(--accent); }
 .primary:hover:not(:disabled) { background: var(--vscode-button-hoverBackground); }
 .secondary { border: 1px solid var(--border); color: var(--vscode-button-secondaryForeground); background: var(--vscode-button-secondaryBackground); }
 button:disabled { opacity: .5; cursor: not-allowed; }
 
-@media (prefers-reduced-motion: reduce) { .progress span { transition: none; } }
+@media (prefers-reduced-motion: reduce) { .progress span, .line-explain-dot { transition: none; } }
 @media (max-width: 520px) { .title-row { align-items: stretch; flex-direction: column; } .card-navigation button, .page-actions button { flex: 1; } .explanation-setup { align-items: stretch; flex-direction: column; } pre { padding: 16px; } }

@@ -13,6 +13,7 @@
 - 可选 Gemini 简洁解释：只发送当前卡片代码，API Key 保存在 VS Code SecretStorage。
 - 学习卡片和 Gemini 解释持久化到 `D:\codeLearn`，相同源码下次直接恢复。
 - 学习代码与候选词使用 VS Code 当前主题的语法类别颜色。
+- 可在设置中关闭卡片自动朗读；代码行左侧圆点可打开可拖动的 Gemini 行级解释。
 - VS Code 主题、高对比度、键盘焦点和减少动态效果适配。
 - 最近 200 条学习会话摘要保存在 `globalState`，不保存源码。
 
@@ -35,7 +36,7 @@ npm.cmd run build
 npm.cmd run package
 ```
 
-输出位于 `apps/extension/adhd-code-focus-0.3.0.vsix`。
+输出位于 `apps/extension/adhd-code-focus-0.4.0.vsix`。
 
 ## Gemini 解释
 
@@ -57,6 +58,13 @@ npm.cmd run package
 - 再次学习同一文件、相同选区和相同源码时，直接恢复原卡片；已有解释不会再次请求 Gemini。
 - 源码或选区变化时创建新的会话记录，避免复用过期解释。
 - 运行 `ADHD Code Focus: Open Learning Records Folder` 可以打开记录目录。
+
+## 行级解释与自动朗读
+
+- 设置 `adhdCodeFocus.tts.autoPlay` 控制卡片是否自动朗读，设置变化会同步到已打开的学习面板。
+- 鼠标悬停代码行时，左侧显示蓝绿色圆点；点击后只把这一行发送给 Gemini。
+- 返回结果显示在页面右侧的悬浮窗，可拖动标题栏移动位置。
+- 行级解释同样保存在 `D:\codeLearn`，再次点击优先读取本地记录。
 
 ## 工程结构
 

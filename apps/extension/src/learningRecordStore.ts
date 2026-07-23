@@ -20,6 +20,7 @@ type StoredSession = {
   updatedAt: string;
   session: LearningSessionDto;
   explanations: Record<string, StoredExplanation>;
+  lineExplanations?: Record<string, StoredExplanation>;
 };
 
 type RecordFile = {
@@ -31,7 +32,9 @@ type RecordFile = {
 export type OpenedLearningRecord = {
   session: LearningSessionDto;
   explanations: Record<string, string>;
+  lineExplanations: Record<string, string>;
   saveExplanation(chunkId: string, text: string, model: string): Promise<void>;
+  saveLineExplanation(lineKey: string, text: string, model: string): Promise<void>;
 };
 
 export class LearningRecordStore {
@@ -62,6 +65,7 @@ export class LearningRecordStore {
         updatedAt: new Date().toISOString(),
         session: freshSession,
         explanations: migratedExplanations,
+        lineExplanations: {},
       };
       record.sessions.push(stored);
       await writeRecord(filePath, record);
@@ -78,11 +82,16 @@ export class LearningRecordStore {
         .filter(([, value]) => value.promptVersion === explanationPromptVersion)
         .map(([chunkId, value]) => [chunkId, value.text]),
     );
+    const lineExplanations = currentExplanationTexts(stored.lineExplanations ?? {});
     return {
       session: restoredSession,
       explanations,
+      lineExplanations,
       saveExplanation: (chunkId, text, model) => this.enqueueSave(
-        filePath, sourceUriHash, sourceHash, chunkId, text, model,
+        filePath, sourceUriHash, sourceHash, "chunk", chunkId, text, model,
+      ),
+      saveLineExplanation: (lineKey, text, model) => this.enqueueSave(
+        filePath, sourceUriHash, sourceHash, "line", lineKey, text, model,
       ),
     };
   }
@@ -91,7 +100,8 @@ export class LearningRecordStore {
     filePath: string,
     sourceUriHash: string,
     sourceHash: string,
-    chunkId: string,
+    target: "chunk" | "line",
+    recordKey: string,
     text: string,
     model: string,
   ): Promise<void> {
@@ -101,10 +111,14 @@ export class LearningRecordStore {
         item.sourceHash === sourceHash && item.cardFormatVersion === cardFormatVersion,
       );
       if (!stored) throw new Error("找不到对应的本地学习会话记录。");
+      const chunkId = target === "line" ? recordKey.split(":line:")[0] : recordKey;
       if (!stored.session.chunks.some((chunk) => chunk.id === chunkId)) {
         throw new Error("本地学习记录中不存在这个代码卡片。");
       }
-      stored.explanations[chunkId] = {
+      const destination = target === "chunk"
+        ? stored.explanations
+        : (stored.lineExplanations ??= {});
+      destination[recordKey] = {
         text,
         model,
         updatedAt: new Date().toISOString(),
@@ -165,4 +179,12 @@ function migrateExplanations(
       ? [[freshChunk.id, explanation] as const]
       : [];
   }));
+}
+
+function currentExplanationTexts(
+  explanations: Record<string, StoredExplanation>,
+): Record<string, string> {
+  return Object.fromEntries(Object.entries(explanations)
+    .filter(([, value]) => value.promptVersion === explanationPromptVersion)
+    .map(([key, value]) => [key, value.text]));
 }

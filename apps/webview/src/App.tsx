@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from "react";
 import type { LearningSessionDto } from "@adhd-code-focus/core";
 import { AdhdText } from "./AdhdText";
 import { AdhdExplanation } from "./AdhdExplanation";
+import { DraggableLineExplanation, type LineExplanationState } from "./DraggableLineExplanation";
 import { chooseAnswer, initialQuizState, undoAnswer, type QuizState } from "./quizState";
 import { vscode } from "./vscode";
 
@@ -18,10 +19,12 @@ export function App() {
   const [speaking, setSpeaking] = useState(false);
   const [explanations, setExplanations] = useState<Record<string, ExplanationState>>({});
   const [geminiRevision, setGeminiRevision] = useState(0);
+  const [lineExplanation, setLineExplanation] = useState<LineExplanationState | null>(null);
   const startedAt = useRef(Date.now());
   const completionSent = useRef(false);
   const autoPlayedChunk = useRef<string | null>(null);
   const cachedExplanationIds = useRef(new Set<string>());
+  const pendingLineRequest = useRef<{ chunkId: string; lineIndex: number } | null>(null);
 
   useEffect(() => {
     const listener = (event: MessageEvent) => {
@@ -56,6 +59,38 @@ export function App() {
         setExplanations((current) => ({ ...current, [payload.chunkId]: state }));
       } else if (event.data?.type === "gemini/configured") {
         setGeminiRevision((value) => value + 1);
+        if (pendingLineRequest.current) {
+          vscode.postMessage({ type: "gemini/explain-line", payload: pendingLineRequest.current });
+        }
+      } else if (event.data?.type === "gemini/line-explanation") {
+        const payload = event.data.payload as {
+          chunkId: string;
+          lineIndex: number;
+          status: LineExplanationState["status"];
+          text?: string;
+          message?: string;
+          source?: "local" | "api";
+        };
+        setLineExplanation((current) => {
+          if (!current || current.chunkId !== payload.chunkId || current.lineIndex !== payload.lineIndex) return current;
+          return {
+            ...current,
+            status: payload.status,
+            ...(payload.text !== undefined ? { text: payload.text } : {}),
+            ...(payload.message !== undefined ? { message: payload.message } : {}),
+            ...(payload.source !== undefined ? { source: payload.source } : {}),
+          };
+        });
+      } else if (event.data?.type === "settings/update") {
+        const ttsAutoPlay = event.data.payload?.ttsAutoPlay === true;
+        if (!ttsAutoPlay) {
+          window.speechSynthesis?.cancel();
+          setSpeaking(false);
+        }
+        setSession((current) => current ? {
+          ...current,
+          settings: { ...current.settings, ttsAutoPlay },
+        } : current);
       }
     };
     window.addEventListener("message", listener);
@@ -99,7 +134,7 @@ export function App() {
   };
 
   useEffect(() => {
-    if (!session || !chunk || autoPlayedChunk.current === chunk.id) return;
+    if (!session || !chunk || !session.settings.ttsAutoPlay || autoPlayedChunk.current === chunk.id) return;
     autoPlayedChunk.current = chunk.id;
     const timer = window.setTimeout(speak, 180);
     return () => {
@@ -122,6 +157,8 @@ export function App() {
     setSpeaking(false);
     setChunkIndex(next);
     setQuizState(initialQuizState());
+    setLineExplanation(null);
+    pendingLineRequest.current = null;
   };
   const onChoice = (choiceId: string) => {
     const next = chooseAnswer(quizState, choiceId, chunk.quiz);
@@ -139,6 +176,25 @@ export function App() {
   const retryExplanation = () => {
     setExplanations((current) => ({ ...current, [chunk.id]: { status: "loading" } }));
     vscode.postMessage({ type: "gemini/explain", payload: { chunkId: chunk.id } });
+  };
+  const explainLine = (lineIndex: number, code: string) => {
+    const request = { chunkId: chunk.id, lineIndex };
+    pendingLineRequest.current = request;
+    setLineExplanation({
+      ...request,
+      displayLine: chunk.sourceRange.startLine + lineIndex + 1,
+      code,
+      status: "loading",
+    });
+    vscode.postMessage({ type: "gemini/explain-line", payload: request });
+  };
+  const retryLineExplanation = () => {
+    if (!lineExplanation) return;
+    const request = { chunkId: lineExplanation.chunkId, lineIndex: lineExplanation.lineIndex };
+    pendingLineRequest.current = request;
+    const { message: _message, ...withoutMessage } = lineExplanation;
+    setLineExplanation({ ...withoutMessage, status: "loading" });
+    vscode.postMessage({ type: "gemini/explain-line", payload: request });
   };
 
   return <main>
@@ -174,7 +230,7 @@ export function App() {
     </section>
 
     <section className="card" aria-label="代码学习卡片">
-      <pre><AdhdText segments={chunk.tokenSegments} blankBySegment={blankBySegment} /></pre>
+      <pre><AdhdText segments={chunk.tokenSegments} blankBySegment={blankBySegment} onExplainLine={explainLine} /></pre>
     </section>
 
     <section className="quiz" aria-label="候选词">
@@ -200,5 +256,15 @@ export function App() {
       <button className="secondary" onClick={speak} disabled={speaking}>{speaking ? "正在朗读…" : "▶ 英语重播"}</button>
       <button className="secondary" onClick={() => vscode.postMessage({ type: "source/reveal", payload: { uri: chunk.sourceUri, range: chunk.sourceRange } })}>在源码中定位</button>
     </footer>
+    {lineExplanation && <DraggableLineExplanation
+      value={lineExplanation}
+      boldRatio={session.settings.boldRatio}
+      onClose={() => {
+        setLineExplanation(null);
+        pendingLineRequest.current = null;
+      }}
+      onRetry={retryLineExplanation}
+      onSetup={() => vscode.postMessage({ type: "gemini/setup" })}
+    />}
   </main>;
 }
