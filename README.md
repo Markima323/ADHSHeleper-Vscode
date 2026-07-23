@@ -11,6 +11,7 @@
 - 每卡最多 10 个代码词元的点击式填空，支持即时反馈、撤销和重置。
 - 每张卡片自动使用系统 Web Speech API 进行一次英语代码朗读，朗读期间仍可填空。
 - 可选 Gemini 简洁解释：只发送当前卡片代码，API Key 保存在 VS Code SecretStorage。
+- 学习卡片和 Gemini 解释持久化到 `D:\codeLearn`，相同源码下次直接恢复。
 - VS Code 主题、高对比度、键盘焦点和减少动态效果适配。
 - 最近 200 条学习会话摘要保存在 `globalState`，不保存源码。
 
@@ -33,7 +34,7 @@ npm.cmd run build
 npm.cmd run package
 ```
 
-输出位于 `apps/extension/adhd-code-focus-0.2.0.vsix`。
+输出位于 `apps/extension/adhd-code-focus-0.2.2.vsix`。
 
 ## Gemini 解释
 
@@ -44,6 +45,16 @@ npm.cmd run package
 - 只发送当前卡片的语言 ID 和代码，不发送文件路径、其他卡片或工作区内容。
 - 代码和解释不会写入本地学习记录；面板关闭后内存缓存释放。
 - 可通过命令面板运行 `ADHD Code Focus: Clear Gemini API Key` 删除密钥。
+
+## 本地学习记录
+
+- 固定保存在 `D:\codeLearn`，不会把卡片记录写入 C 盘。
+- 新版不再使用 VS Code globalState 保存会话摘要，并会清除旧版的摘要键。
+- 每个源文件对应一个以源 URI SHA-256 命名的 JSON 文件。
+- JSON 保存卡片代码、源码范围、填空模型、解释文本、模型和更新时间。
+- 再次学习同一文件、相同选区和相同源码时，直接恢复原卡片；已有解释不会再次请求 Gemini。
+- 源码或选区变化时创建新的会话记录，避免复用过期解释。
+- 运行 `ADHD Code Focus: Open Learning Records Folder` 可以打开记录目录。
 
 ## 工程结构
 

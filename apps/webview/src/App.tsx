@@ -7,7 +7,7 @@ import { vscode } from "./vscode";
 type ExplanationState =
   | { status: "loading" }
   | { status: "needs-key" }
-  | { status: "ready"; text: string }
+  | { status: "ready"; text: string; source: "local" | "api" }
   | { status: "error"; message: string };
 
 export function App() {
@@ -20,11 +20,23 @@ export function App() {
   const startedAt = useRef(Date.now());
   const completionSent = useRef(false);
   const autoPlayedChunk = useRef<string | null>(null);
+  const cachedExplanationIds = useRef(new Set<string>());
 
   useEffect(() => {
     const listener = (event: MessageEvent) => {
       if (event.data?.type === "session/init") {
-        setSession(event.data.payload as LearningSessionDto);
+        const payload = event.data.payload as {
+          session: LearningSessionDto;
+          explanations: Record<string, string>;
+        };
+        cachedExplanationIds.current = new Set(Object.keys(payload.explanations));
+        setExplanations(Object.fromEntries(
+          Object.entries(payload.explanations).map(([chunkId, text]) => [
+            chunkId,
+            { status: "ready", text, source: "local" } satisfies ExplanationState,
+          ]),
+        ));
+        setSession(payload.session);
       } else if (event.data?.type === "gemini/explanation") {
         const payload = event.data.payload as {
           chunkId: string;
@@ -33,12 +45,13 @@ export function App() {
           message?: string;
         };
         const state: ExplanationState = payload.status === "ready"
-          ? { status: "ready", text: payload.text ?? "" }
+          ? { status: "ready", text: payload.text ?? "", source: "api" }
           : payload.status === "error"
             ? { status: "error", message: payload.message ?? "解释生成失败。" }
             : payload.status === "needs-key"
               ? { status: "needs-key" }
               : { status: "loading" };
+        if (state.status === "ready") cachedExplanationIds.current.add(payload.chunkId);
         setExplanations((current) => ({ ...current, [payload.chunkId]: state }));
       } else if (event.data?.type === "gemini/configured") {
         setGeminiRevision((value) => value + 1);
@@ -96,6 +109,7 @@ export function App() {
 
   useEffect(() => {
     if (!chunk) return;
+    if (cachedExplanationIds.current.has(chunk.id)) return;
     setExplanations((current) => ({ ...current, [chunk.id]: { status: "loading" } }));
     vscode.postMessage({ type: "gemini/explain", payload: { chunkId: chunk.id } });
   }, [chunk?.id, geminiRevision]);
@@ -138,7 +152,10 @@ export function App() {
     <section className="explanation" aria-label="Gemini 代码解释" aria-live="polite">
       <div className="explanation-title"><span className="spark">✦</span> Gemini 简洁解释</div>
       {explanation.status === "loading" && <p>正在理解当前代码片段…</p>}
-      {explanation.status === "ready" && <p>{explanation.text}</p>}
+      {explanation.status === "ready" && <>
+        <p>{explanation.text}</p>
+        {explanation.source === "local" && <span className="local-record">已从 D:\codeLearn 读取</span>}
+      </>}
       {explanation.status === "needs-key" && <div className="explanation-setup">
         <p>配置 API Key 后，当前卡片代码会发送给 Gemini 生成解释。</p>
         <button className="secondary" onClick={() => vscode.postMessage({ type: "gemini/setup" })}>设置 Gemini API Key</button>

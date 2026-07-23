@@ -2,7 +2,7 @@
   "name": "adhd-code-focus",
   "displayName": "ADHD Code Focus",
   "description": "ADHD 友好的代码视觉锚点、分块学习、德语朗读与点击填空。",
-  "version": "0.2.0",
+  "version": "0.2.2",
   "publisher": "adhd-code-focus",
   "private": true,
   "license": "MIT",
@@ -22,6 +22,7 @@
     "build": "esbuild src/extension.ts --bundle --platform=node --format=cjs --external:vscode --outfile=dist/extension.js --sourcemap && npm run copy-webview",
     "copy-webview": "node scripts/copy-webview.mjs",
     "typecheck": "tsc -p tsconfig.json --noEmit",
+    "test": "vitest run src/learningRecordStore.test.ts",
     "package": "vsce package --no-dependencies"
   },
   "dependencies": {
@@ -41,7 +42,8 @@
       { "command": "adhdCodeFocus.previewIntensity", "title": "ADHD Code Focus: Preview Intensity" },
       { "command": "adhdCodeFocus.resetLocalProgress", "title": "ADHD Code Focus: Reset Local Progress" },
       { "command": "adhdCodeFocus.setGeminiApiKey", "title": "ADHD Code Focus: Set Gemini API Key" },
-      { "command": "adhdCodeFocus.clearGeminiApiKey", "title": "ADHD Code Focus: Clear Gemini API Key" }
+      { "command": "adhdCodeFocus.clearGeminiApiKey", "title": "ADHD Code Focus: Clear Gemini API Key" },
+      { "command": "adhdCodeFocus.openLearningRecords", "title": "ADHD Code Focus: Open Learning Records Folder" }
     ],
     "keybindings": [
       { "command": "adhdCodeFocus.toggle", "key": "ctrl+alt+b", "mac": "cmd+alt+b" },

@@ -8,7 +8,7 @@
   ],
   "scripts": {
     "build": "npm run build -w @adhd-code-focus/core && npm run build -w adhd-code-focus-webview && npm run build -w adhd-code-focus",
-    "test": "npm run build -w @adhd-code-focus/core && npm run test -w @adhd-code-focus/core && npm run test -w adhd-code-focus-webview",
+    "test": "npm run build -w @adhd-code-focus/core && npm run test -w @adhd-code-focus/core && npm run test -w adhd-code-focus-webview && npm run test -w adhd-code-focus",
     "typecheck": "npm run build -w @adhd-code-focus/core && npm run typecheck -w adhd-code-focus-webview && npm run typecheck -w adhd-code-focus",
     "package": "npm run build && npm run package -w adhd-code-focus"
   },

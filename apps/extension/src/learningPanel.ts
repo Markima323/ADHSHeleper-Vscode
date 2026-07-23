@@ -1,6 +1,7 @@
 import * as vscode from "vscode";
 import type { LearningSessionDto, SourceRangeDto } from "@adhd-code-focus/core";
 import { GeminiApiError, GeminiClient } from "./geminiClient.js";
+import type { OpenedLearningRecord } from "./learningRecordStore.js";
 
 type WebviewMessage =
   | { type: "ready" }
@@ -11,7 +12,12 @@ type WebviewMessage =
   | { type: "gemini/explain"; payload: { chunkId: string } };
 
 export class LearningPanel {
-  static open(context: vscode.ExtensionContext, session: LearningSessionDto, gemini: GeminiClient): void {
+  static open(
+    context: vscode.ExtensionContext,
+    session: LearningSessionDto,
+    gemini: GeminiClient,
+    record?: OpenedLearningRecord,
+  ): void {
     const panel = vscode.window.createWebviewPanel(
       "adhdCodeFocus.learning",
       "ADHD Code Focus · 学习模式",
@@ -23,15 +29,12 @@ export class LearningPanel {
     panel.webview.html = this.html(panel.webview, context.extensionUri);
     panel.webview.onDidReceiveMessage(async (message: WebviewMessage) => {
       if (message.type === "ready") {
-        await panel.webview.postMessage({ type: "session/init", payload: session });
+        await panel.webview.postMessage({
+          type: "session/init",
+          payload: { session, explanations: record?.explanations ?? {} },
+        });
       } else if (message.type === "source/reveal") {
         await this.revealSource(message.payload.uri, message.payload.range);
-      } else if (message.type === "session/complete") {
-        const history = context.globalState.get<Array<object>>("learningHistory", []);
-        await context.globalState.update("learningHistory", [
-          { sessionId: session.id, completedAt: new Date().toISOString(), ...message.payload },
-          ...history,
-        ].slice(0, 200));
       } else if (message.type === "tts/unavailable") {
         void vscode.window.showWarningMessage(`未找到 ${message.payload.locale} 英语系统语音，仍可使用文本和填空功能。`);
       } else if (message.type === "gemini/setup") {
@@ -56,6 +59,15 @@ export class LearningPanel {
         }
         try {
           const text = await request;
+          if (record) {
+            const model = vscode.workspace.getConfiguration("adhdCodeFocus").get("gemini.model", "gemini-3.5-flash");
+            try {
+              await record.saveExplanation(chunk.id, text, model);
+            } catch (error) {
+              const detail = error instanceof Error ? error.message : String(error);
+              void vscode.window.showWarningMessage(`Gemini 解释已生成，但保存到 D:\\codeLearn 失败：${detail}`);
+            }
+          }
           await panel.webview.postMessage({
             type: "gemini/explanation",
             payload: { chunkId: chunk.id, status: "ready", text },

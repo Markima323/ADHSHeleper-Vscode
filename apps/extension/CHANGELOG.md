@@ -1,5 +1,16 @@
 # Changelog
 
+## 0.2.2
+
+- 停止向 VS Code globalState 写入学习摘要，确保学习记录只位于 `D:\codeLearn`。
+- 激活时清除旧版 `learningHistory` 摘要键。
+
+## 0.2.1
+
+- 将学习卡片、填空模型和 Gemini 解释保存到 `D:\codeLearn`。
+- 相同文件、选区和源码再次学习时直接恢复记录并跳过 Gemini 请求。
+- 本地恢复的解释显示来源标记，新增打开记录目录命令。
+
 ## 0.2.0
 
 - 在卡片进度条和代码之间加入 Gemini 简洁解释。

@@ -3,11 +3,15 @@ import { ControlViewProvider } from "./controlView.js";
 import { DecorationEngine } from "./decorationEngine.js";
 import { GeminiClient } from "./geminiClient.js";
 import { LearningPanel } from "./learningPanel.js";
+import { LearningRecordStore, getLearningRecordDirectory } from "./learningRecordStore.js";
 import { buildLearningSession, sourceForCurrentSymbol, sourceForSelectionOrDocument } from "./session.js";
 
 export function activate(context: vscode.ExtensionContext): void {
+  // v0.2.2+: learning records live exclusively in D:\codeLearn.
+  void context.globalState.update("learningHistory", undefined);
   const engine = new DecorationEngine();
   const gemini = new GeminiClient(context);
+  const records = new LearningRecordStore();
   const controls = new ControlViewProvider(() => {
     const editor = vscode.window.activeTextEditor;
     return { enabled: editor ? engine.isEnabled(editor) : false, hasEditor: Boolean(editor) };
@@ -38,7 +42,22 @@ export function activate(context: vscode.ExtensionContext): void {
         void vscode.window.showInformationMessage("请选择包含代码的范围后再开始学习。");
         return;
       }
-      LearningPanel.open(context, buildLearningSession(editor.document, source), gemini);
+      const freshSession = buildLearningSession(editor.document, source);
+      try {
+        const sourceIdentity = [
+          source.range.start.line,
+          source.range.start.character,
+          source.range.end.line,
+          source.range.end.character,
+          source.code,
+        ].join("\u0000");
+        const record = await records.open(editor.document.uri.toString(), sourceIdentity, freshSession);
+        LearningPanel.open(context, record.session, gemini, record);
+      } catch (error) {
+        const detail = error instanceof Error ? error.message : String(error);
+        void vscode.window.showWarningMessage(`无法使用 ${getLearningRecordDirectory()} 的本地记录：${detail}`);
+        LearningPanel.open(context, freshSession, gemini);
+      }
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
       void vscode.window.showErrorMessage(`ADHD Code Focus 无法打开学习面板：${detail}`);
@@ -76,6 +95,11 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("adhdCodeFocus.clearGeminiApiKey", async () => {
       await gemini.clearApiKey();
       void vscode.window.showInformationMessage("Gemini API Key 已从 VS Code 安全存储中删除。 ");
+    }),
+    vscode.commands.registerCommand("adhdCodeFocus.openLearningRecords", async () => {
+      const directory = vscode.Uri.file(getLearningRecordDirectory());
+      await vscode.workspace.fs.createDirectory(directory);
+      await vscode.env.openExternal(directory);
     }),
     vscode.window.onDidChangeActiveTextEditor((editor) => {
       if (editor) engine.schedule(editor, 0);
