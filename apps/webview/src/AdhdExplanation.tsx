@@ -1,9 +1,9 @@
-import { calculateBoldRanges, type OffsetRange } from "@adhd-code-focus/core";
+import { calculateBoldRanges, formatExplanationLines, type OffsetRange } from "@adhd-code-focus/core";
 
 type Props = { text: string; boldRatio: number };
 
 export function AdhdExplanation({ text, boldRatio }: Props) {
-  const units = segmentText(text);
+  const units = segmentText(formatExplanationLines(text));
   return <p className="explanation-text">{units.map((unit, index) => {
     if (!unit.isWordLike) return <span key={index}>{unit.text}</span>;
     const ranges = calculateBoldRanges(unit.text, {

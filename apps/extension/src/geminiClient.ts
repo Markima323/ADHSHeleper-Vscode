@@ -1,5 +1,9 @@
 import * as vscode from "vscode";
-import { buildGeminiExplanationPrompt, extractGeminiExplanation } from "@adhd-code-focus/core";
+import {
+  buildGeminiExplanationPrompt,
+  extractGeminiExplanation,
+  formatExplanationLines,
+} from "@adhd-code-focus/core";
 
 const apiKeySecret = "adhdCodeFocus.geminiApiKey";
 const endpoint = "https://generativelanguage.googleapis.com/v1beta/interactions";
@@ -57,7 +61,7 @@ export class GeminiClient {
       if (!response.ok) throw apiErrorForStatus(response.status, payload);
       const explanation = extractGeminiExplanation(payload);
       if (!explanation) throw new GeminiApiError("empty-response", "Gemini 没有返回可显示的解释。");
-      return explanation;
+      return formatExplanationLines(explanation);
     } catch (error) {
       if (error instanceof GeminiApiError) throw error;
       if (controller.signal.aborted) throw new GeminiApiError("timeout", "请求已取消或超过 20 秒。");

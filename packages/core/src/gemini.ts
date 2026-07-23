@@ -29,3 +29,10 @@ export function extractGeminiExplanation(response: unknown): string | undefined 
   });
   return texts.join("\n").trim() || undefined;
 }
+
+/** Places each Chinese sentence on its own line without leaving a trailing blank line. */
+export function formatExplanationLines(text: string): string {
+  return text
+    .replace(/。\s*(?=\S)/gu, "。\n")
+    .trim();
+}

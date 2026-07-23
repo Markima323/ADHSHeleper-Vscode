@@ -144,7 +144,13 @@ export function App() {
   return <main>
     <header>
       <div className="eyebrow">学习模式 · {chunkIndex + 1} / {session.chunks.length}</div>
-      <h1>{chunk.title}</h1>
+      <div className="title-row">
+        <h1>{chunk.title}</h1>
+        <nav className="card-navigation" aria-label="切换学习卡片">
+          <button className="secondary" disabled={chunkIndex === 0} onClick={() => moveTo(chunkIndex - 1)}>← 上一张</button>
+          <button className="primary" disabled={chunkIndex === session.chunks.length - 1} onClick={() => moveTo(chunkIndex + 1)}>下一张 →</button>
+        </nav>
+      </div>
       <div className="progress" role="progressbar" aria-valuenow={chunkIndex + 1} aria-valuemin={1} aria-valuemax={session.chunks.length}>
         <span style={{ width: `${((chunkIndex + 1) / session.chunks.length) * 100}%` }} />
       </div>
@@ -168,18 +174,10 @@ export function App() {
     </section>
 
     <section className="card" aria-label="代码学习卡片">
-      <div className="card-actions">
-        <button className="secondary" onClick={speak} disabled={speaking}>{speaking ? "正在朗读…" : "▶ 英语重播"}</button>
-        <button className="secondary" onClick={() => vscode.postMessage({ type: "source/reveal", payload: { uri: chunk.sourceUri, range: chunk.sourceRange } })}>在源码中定位</button>
-      </div>
       <pre><AdhdText segments={chunk.tokenSegments} blankBySegment={blankBySegment} /></pre>
     </section>
 
     <section className="quiz" aria-label="候选词">
-      <div className="quiz-heading">
-        <div><span className="step">当前任务</span><h2>{quizState.completed ? "完成这张卡片" : `填写第 ${quizState.answers.length + 1} 个空位`}</h2></div>
-        <span>{quizState.answers.length} / {chunk.quiz.blanks.length}</span>
-      </div>
       {speaking && <p className="hint" aria-live="polite">正在英语朗读，你可以同时填写空位。</p>}
       <div className="choices">
         {chunk.quiz.choices.map((choice) => <button
@@ -197,9 +195,9 @@ export function App() {
       </div>
     </section>
 
-    <nav>
-      <button className="secondary" disabled={chunkIndex === 0} onClick={() => moveTo(chunkIndex - 1)}>← 上一张</button>
-      <button className="primary" disabled={chunkIndex === session.chunks.length - 1} onClick={() => moveTo(chunkIndex + 1)}>下一张 →</button>
-    </nav>
+    <footer className="page-actions">
+      <button className="secondary" onClick={speak} disabled={speaking}>{speaking ? "正在朗读…" : "▶ 英语重播"}</button>
+      <button className="secondary" onClick={() => vscode.postMessage({ type: "source/reveal", payload: { uri: chunk.sourceUri, range: chunk.sourceRange } })}>在源码中定位</button>
+    </footer>
   </main>;
 }

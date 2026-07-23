@@ -34,7 +34,7 @@ npm.cmd run build
 npm.cmd run package
 ```
 
-输出位于 `apps/extension/adhd-code-focus-0.2.3.vsix`。
+输出位于 `apps/extension/adhd-code-focus-0.2.5.vsix`。
 
 ## Gemini 解释
 

@@ -6,6 +6,7 @@ import {
   chunkByLines,
   createClozeQuiz,
   extractGeminiExplanation,
+  formatExplanationLines,
   splitIdentifier,
 } from "../src/index.js";
 import type { TokenSegment } from "../src/index.js";
@@ -74,5 +75,10 @@ describe("Gemini explanation helpers", () => {
         { type: "model_output", content: [{ type: "text", text: "  简洁解释。 " }] },
       ],
     })).toBe("简洁解释。");
+  });
+
+  it("places every Chinese sentence after a full stop on a new line", () => {
+    expect(formatExplanationLines("第一句。 第二句。第三句。"))
+      .toBe("第一句。\n第二句。\n第三句。");
   });
 });
