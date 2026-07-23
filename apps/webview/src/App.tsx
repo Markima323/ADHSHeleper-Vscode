@@ -11,6 +11,7 @@ export function App() {
   const [speaking, setSpeaking] = useState(false);
   const startedAt = useRef(Date.now());
   const completionSent = useRef(false);
+  const autoPlayedChunk = useRef<string | null>(null);
 
   useEffect(() => {
     const listener = (event: MessageEvent) => {
@@ -32,15 +33,8 @@ export function App() {
     return result;
   }, [chunk, quizState.answers.length]);
 
-  if (!session || !chunk) return <main className="loading" aria-live="polite">正在准备学习卡片…</main>;
-
-  const moveTo = (next: number) => {
-    window.speechSynthesis?.cancel();
-    setSpeaking(false);
-    setChunkIndex(next);
-    setQuizState(initialQuizState());
-  };
   const speak = () => {
+    if (!session || !chunk) return;
     if (!("speechSynthesis" in window)) {
       vscode.postMessage({ type: "tts/unavailable", payload: { locale: session.settings.ttsLocale } });
       return;
@@ -50,7 +44,8 @@ export function App() {
     utterance.lang = session.settings.ttsLocale;
     utterance.rate = session.settings.ttsRate;
     const voices = window.speechSynthesis.getVoices();
-    const voice = voices.find((item) => item.lang.toLowerCase().startsWith("de"));
+    const language = session.settings.ttsLocale.split("-")[0]?.toLowerCase() ?? "en";
+    const voice = voices.find((item) => item.lang.toLowerCase().startsWith(language));
     if (voices.length > 0 && !voice) {
       vscode.postMessage({ type: "tts/unavailable", payload: { locale: session.settings.ttsLocale } });
       return;
@@ -60,6 +55,25 @@ export function App() {
     utterance.onend = () => setSpeaking(false);
     utterance.onerror = () => setSpeaking(false);
     window.speechSynthesis.speak(utterance);
+  };
+
+  useEffect(() => {
+    if (!session || !chunk || autoPlayedChunk.current === chunk.id) return;
+    autoPlayedChunk.current = chunk.id;
+    const timer = window.setTimeout(speak, 180);
+    return () => {
+      window.clearTimeout(timer);
+      window.speechSynthesis?.cancel();
+    };
+  }, [session, chunk]);
+
+  if (!session || !chunk) return <main className="loading" aria-live="polite">正在准备学习卡片…</main>;
+
+  const moveTo = (next: number) => {
+    window.speechSynthesis?.cancel();
+    setSpeaking(false);
+    setChunkIndex(next);
+    setQuizState(initialQuizState());
   };
   const onChoice = (choiceId: string) => {
     const next = chooseAnswer(quizState, choiceId, chunk.quiz);
@@ -85,7 +99,7 @@ export function App() {
 
     <section className="card" aria-label="代码学习卡片">
       <div className="card-actions">
-        <button className="secondary" onClick={speak} disabled={speaking}>{speaking ? "正在朗读…" : "▶ 德语朗读"}</button>
+        <button className="secondary" onClick={speak} disabled={speaking}>{speaking ? "正在朗读…" : "▶ 英语重播"}</button>
         <button className="secondary" onClick={() => vscode.postMessage({ type: "source/reveal", payload: { uri: chunk.sourceUri, range: chunk.sourceRange } })}>在源码中定位</button>
       </div>
       <pre><AdhdText segments={chunk.tokenSegments} blankBySegment={blankBySegment} /></pre>
@@ -96,18 +110,17 @@ export function App() {
         <div><span className="step">当前任务</span><h2>{quizState.completed ? "完成这张卡片" : `填写第 ${quizState.answers.length + 1} 个空位`}</h2></div>
         <span>{quizState.answers.length} / {chunk.quiz.blanks.length}</span>
       </div>
-      {speaking ? <p className="hint" aria-live="polite">先听代码朗读，结束后再继续填空。</p> : <>
-        <div className="choices">
-          {chunk.quiz.choices.map((choice) => <button
-            key={choice.id}
-            disabled={used.has(choice.id) || quizState.completed}
-            onClick={() => onChoice(choice.id)}
-          >{choice.text}</button>)}
-        </div>
-        <p className={quizState.error ? "feedback error" : "feedback"} aria-live="polite">
-          {quizState.error ?? (quizState.completed ? "✓ 很好，所有词都回到了正确位置。" : "按源码顺序选择下一个词。")}
-        </p>
-      </>}
+      {speaking && <p className="hint" aria-live="polite">正在英语朗读，你可以同时填写空位。</p>}
+      <div className="choices">
+        {chunk.quiz.choices.map((choice) => <button
+          key={choice.id}
+          disabled={used.has(choice.id) || quizState.completed}
+          onClick={() => onChoice(choice.id)}
+        >{choice.text}</button>)}
+      </div>
+      <p className={quizState.error ? "feedback error" : "feedback"} aria-live="polite">
+        {quizState.error ?? (quizState.completed ? "✓ 很好，所有词都回到了正确位置。" : "按源码顺序选择下一个词。")}
+      </p>
       <div className="quiz-actions">
         <button className="secondary" onClick={() => setQuizState(undoAnswer(quizState))} disabled={quizState.answers.length === 0}>撤销</button>
         <button className="secondary" onClick={() => setQuizState(initialQuizState())}>重新开始</button>

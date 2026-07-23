@@ -1,6 +1,6 @@
 import * as vscode from "vscode";
 import {
-  buildGermanNarration,
+  buildEnglishNarration,
   buildTokenSegments,
   chunkByLines,
   createClozeQuiz,
@@ -19,8 +19,8 @@ export function buildLearningSession(
     minTokenLength: config.get("minTokenLength", 3),
     maxBoldChars: config.get("maxBoldChars", 6),
   };
-  const maxLines = config.get("learning.maxChunkLines", 24);
-  const maxBlankCount = config.get("learning.blankCount", 10);
+  const maxLines = config.get("learning.maxChunkLines", 12);
+  const maxBlankCount = config.get("learning.blankCount", 6);
   const id = `${Date.now()}-${document.version}`;
   const chunks = chunkByLines(source.code, source.range.start.line, maxLines).map((chunk, index) => {
     const tokenSegments = buildTokenSegments(chunk.code, boldOptions);
@@ -40,7 +40,7 @@ export function buildLearningSession(
       code: chunk.code,
       tokenSegments,
       quiz: createClozeQuiz(tokenSegments, maxBlankCount, `${id}-${index}`),
-      narrationText: buildGermanNarration(tokenSegments),
+      narrationText: buildEnglishNarration(tokenSegments),
     };
   });
   return {
@@ -49,7 +49,7 @@ export function buildLearningSession(
     chunks,
     settings: {
       boldRatio: boldOptions.boldRatio,
-      ttsLocale: config.get("tts.locale", "de-DE"),
+      ttsLocale: config.get("tts.locale", "en-US"),
       ttsRate: config.get("tts.rate", 0.9),
     },
   };

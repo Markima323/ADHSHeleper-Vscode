@@ -28,7 +28,7 @@ export class LearningPanel {
           ...history,
         ].slice(0, 200));
       } else if (message.type === "tts/unavailable") {
-        void vscode.window.showWarningMessage(`未找到 ${message.payload.locale} 系统语音，仍可使用文本和填空功能。`);
+        void vscode.window.showWarningMessage(`未找到 ${message.payload.locale} 英语系统语音，仍可使用文本和填空功能。`);
       }
     });
   }

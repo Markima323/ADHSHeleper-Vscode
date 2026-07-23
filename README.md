@@ -9,7 +9,7 @@
 - 状态栏、命令面板和快捷键开关。
 - 从选区、当前函数/类或当前文件创建分块学习卡片。
 - 每卡最多 10 个代码词元的点击式填空，支持即时反馈、撤销和重置。
-- 使用系统 Web Speech API 的德语代码朗读；无德语语音时明确提示。
+- 每张卡片自动使用系统 Web Speech API 进行一次英语代码朗读，朗读期间仍可填空。
 - VS Code 主题、高对比度、键盘焦点和减少动态效果适配。
 - 最近 200 条学习会话摘要保存在 `globalState`，不保存源码。
 
@@ -32,7 +32,7 @@ npm.cmd run build
 npm.cmd run package
 ```
 
-输出位于 `apps/extension/adhd-code-focus-0.1.1.vsix`。
+输出位于 `apps/extension/adhd-code-focus-0.1.2.vsix`。
 
 ## 工程结构
 

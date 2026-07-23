@@ -1,5 +1,5 @@
 import { describe, expect, it } from "vitest";
-import { calculateBoldRanges, chunkByLines, createClozeQuiz, splitIdentifier } from "../src/index.js";
+import { buildEnglishNarration, calculateBoldRanges, chunkByLines, createClozeQuiz, splitIdentifier } from "../src/index.js";
 import type { TokenSegment } from "../src/index.js";
 
 describe("identifier splitting", () => {
@@ -38,5 +38,14 @@ describe("fallback chunking", () => {
     const chunks = chunkByLines(Array.from({ length: 53 }, (_, i) => `line ${i}`).join("\n"), 0, 24);
     expect(chunks).toHaveLength(3);
     expect(chunks.every((chunk) => chunk.code.split("\n").length <= 24)).toBe(true);
+  });
+});
+
+describe("English narration", () => {
+  it("splits camel-case identifiers into speakable words", () => {
+    expect(buildEnglishNarration([
+      { id: "1", text: "function", kind: "word", boldRanges: [] },
+      { id: "2", text: "calculateTotal", kind: "word", boldRanges: [] },
+    ])).toBe("function, calculate, Total");
   });
 });
