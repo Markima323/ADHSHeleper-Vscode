@@ -15,12 +15,13 @@ export type LineExplanationState = {
 type Props = {
   value: LineExplanationState;
   boldRatio: number;
+  providerName: string;
   onClose(): void;
   onRetry(): void;
   onSetup(): void;
 };
 
-export function DraggableLineExplanation({ value, boldRatio, onClose, onRetry, onSetup }: Props) {
+export function DraggableLineExplanation({ value, boldRatio, providerName, onClose, onRetry, onSetup }: Props) {
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
   const drag = useRef<{ pointerId: number; offsetX: number; offsetY: number } | null>(null);
 
@@ -52,7 +53,7 @@ export function DraggableLineExplanation({ value, boldRatio, onClose, onRetry, o
   return <aside
     className="line-explanation-window"
     style={position ? { left: position.x, top: position.y, right: "auto" } : undefined}
-    aria-label={`第 ${value.displayLine} 行的 Gemini 解释`}
+    aria-label={`第 ${value.displayLine} 行的 ${providerName} 解释`}
   >
     <header
       className="floating-titlebar"
@@ -66,13 +67,13 @@ export function DraggableLineExplanation({ value, boldRatio, onClose, onRetry, o
     </header>
     <div className="floating-content">
       <code className="line-code-preview">{value.code.trim() || "（空行）"}</code>
-      {value.status === "loading" && <p className="floating-message">Gemini 正在解析这一行…</p>}
+      {value.status === "loading" && <p className="floating-message">{providerName} 正在解析这一行…</p>}
       {value.status === "ready" && <>
         <AdhdExplanation text={value.text ?? ""} boldRatio={boldRatio} />
         {value.source === "local" && <span className="local-record">已从 D:\codeLearn 读取</span>}
       </>}
       {value.status === "needs-key" && <div className="floating-state">
-        <p>需要先配置 Gemini API Key。</p>
+        <p>需要先配置 {providerName} API Key。</p>
         <button className="secondary" onClick={onSetup}>设置 API Key</button>
       </div>}
       {value.status === "error" && <div className="floating-state error-box">

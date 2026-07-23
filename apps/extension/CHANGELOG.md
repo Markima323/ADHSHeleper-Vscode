@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.5.0
+
+- 在“专注控制”面板中加入 Gemini / DeepSeek AI 服务下拉框。
+- 新增 DeepSeek Chat Completions API，默认使用 `deepseek-v4-flash` 和非思考模式。
+- Gemini 与 DeepSeek 的 API Key 分别保存在 VS Code SecretStorage。
+- 卡片与行级解释按 AI 服务和模型分别缓存到 `D:\codeLearn`，切换后不会混用。
+
 ## 0.4.1
 
 - 在“专注控制”面板中加入自动朗读开关，并与 VS Code 设置双向同步。

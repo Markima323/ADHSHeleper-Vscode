@@ -22,14 +22,15 @@ describe("learning record store", () => {
     const store = new LearningRecordStore(testDirectory);
     const original = session("session-1");
     const first = await store.open("file:///D:/project/example.ts", "same source", original);
-    await first.saveExplanation("chunk-1", "这段代码返回总数。", "gemini-3.5-flash");
-    await first.saveLineExplanation("chunk-1:line:0", "这一行返回总数。", "gemini-3.5-flash");
+    await first.saveExplanation("chunk-1", "这段代码返回总数。", "gemini", "gemini-3.5-flash");
+    await first.saveLineExplanation("chunk-1:line:0", "这一行返回总数。", "gemini", "gemini-3.5-flash");
 
     const restored = await store.open("file:///D:/project/example.ts", "same source", session("session-2"));
     expect(restored.session.id).toBe("session-2");
     expect(restored.session.chunks[0]?.code).toBe("return total;");
-    expect(restored.explanations).toEqual({ "chunk-1": "这段代码返回总数。" });
-    expect(restored.lineExplanations).toEqual({ "chunk-1:line:0": "这一行返回总数。" });
+    expect(restored.getExplanation("chunk-1", "gemini", "gemini-3.5-flash")).toBe("这段代码返回总数。");
+    expect(restored.getLineExplanation("chunk-1:line:0", "gemini", "gemini-3.5-flash")).toBe("这一行返回总数。");
+    expect(restored.getExplanation("chunk-1", "deepseek", "deepseek-v4-flash")).toBeUndefined();
     expect(await readdir(testDirectory)).toHaveLength(1);
   });
 });

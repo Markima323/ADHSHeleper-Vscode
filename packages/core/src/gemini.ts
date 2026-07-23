@@ -30,6 +30,19 @@ export function extractGeminiExplanation(response: unknown): string | undefined 
   return texts.join("\n").trim() || undefined;
 }
 
+export function extractDeepSeekExplanation(response: unknown): string | undefined {
+  if (!response || typeof response !== "object") return undefined;
+  const choices = (response as { choices?: unknown }).choices;
+  if (!Array.isArray(choices)) return undefined;
+  for (const choice of choices) {
+    const content = choice && typeof choice === "object"
+      ? (choice as { message?: { content?: unknown } }).message?.content
+      : undefined;
+    if (typeof content === "string" && content.trim()) return content.trim();
+  }
+  return undefined;
+}
+
 /** Places each Chinese sentence on its own line without leaving a trailing blank line. */
 export function formatExplanationLines(text: string): string {
   return text

@@ -1,7 +1,7 @@
 import * as vscode from "vscode";
 import { ControlViewProvider } from "./controlView.js";
 import { DecorationEngine } from "./decorationEngine.js";
-import { GeminiClient } from "./geminiClient.js";
+import { AiClient } from "./geminiClient.js";
 import { LearningPanel } from "./learningPanel.js";
 import { LearningRecordStore, getLearningRecordDirectory } from "./learningRecordStore.js";
 import { buildLearningSession, sourceForCurrentSymbol, sourceForSelectionOrDocument } from "./session.js";
@@ -10,12 +10,13 @@ export function activate(context: vscode.ExtensionContext): void {
   // v0.2.2+: learning records live exclusively in D:\codeLearn.
   void context.globalState.update("learningHistory", undefined);
   const engine = new DecorationEngine();
-  const gemini = new GeminiClient(context);
+  const ai = new AiClient(context);
   const records = new LearningRecordStore();
   const controls = new ControlViewProvider(() => {
     const editor = vscode.window.activeTextEditor;
     const autoPlay = vscode.workspace.getConfiguration("adhdCodeFocus").get("tts.autoPlay", true);
-    return { enabled: editor ? engine.isEnabled(editor) : false, hasEditor: Boolean(editor), autoPlay };
+    const aiProvider = vscode.workspace.getConfiguration("adhdCodeFocus").get<"gemini" | "deepseek">("ai.provider", "gemini");
+    return { enabled: editor ? engine.isEnabled(editor) : false, hasEditor: Boolean(editor), autoPlay, aiProvider };
   });
   const status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
   status.command = "adhdCodeFocus.toggle";
@@ -53,11 +54,11 @@ export function activate(context: vscode.ExtensionContext): void {
           source.code,
         ].join("\u0000");
         const record = await records.open(editor.document.uri.toString(), sourceIdentity, freshSession);
-        LearningPanel.open(context, record.session, gemini, record);
+        LearningPanel.open(context, record.session, ai, record);
       } catch (error) {
         const detail = error instanceof Error ? error.message : String(error);
         void vscode.window.showWarningMessage(`无法使用 ${getLearningRecordDirectory()} 的本地记录：${detail}`);
-        LearningPanel.open(context, freshSession, gemini);
+        LearningPanel.open(context, freshSession, ai);
       }
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
@@ -89,13 +90,22 @@ export function activate(context: vscode.ExtensionContext): void {
       void vscode.window.showInformationMessage("ADHD Code Focus 本地学习记录已清除。 ");
     }),
     vscode.commands.registerCommand("adhdCodeFocus.setGeminiApiKey", async () => {
-      if (await gemini.configureApiKey()) {
+      if (await ai.configureApiKey("gemini")) {
         void vscode.window.showInformationMessage("Gemini API Key 已安全保存。 ");
       }
     }),
     vscode.commands.registerCommand("adhdCodeFocus.clearGeminiApiKey", async () => {
-      await gemini.clearApiKey();
+      await ai.clearApiKey("gemini");
       void vscode.window.showInformationMessage("Gemini API Key 已从 VS Code 安全存储中删除。 ");
+    }),
+    vscode.commands.registerCommand("adhdCodeFocus.setDeepSeekApiKey", async () => {
+      if (await ai.configureApiKey("deepseek")) {
+        void vscode.window.showInformationMessage("DeepSeek API Key 已安全保存。 ");
+      }
+    }),
+    vscode.commands.registerCommand("adhdCodeFocus.clearDeepSeekApiKey", async () => {
+      await ai.clearApiKey("deepseek");
+      void vscode.window.showInformationMessage("DeepSeek API Key 已从 VS Code 安全存储中删除。 ");
     }),
     vscode.commands.registerCommand("adhdCodeFocus.openLearningRecords", async () => {
       const directory = vscode.Uri.file(getLearningRecordDirectory());

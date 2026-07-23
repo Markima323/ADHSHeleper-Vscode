@@ -2,7 +2,7 @@
   "name": "adhd-code-focus",
   "displayName": "ADHD Code Focus",
   "description": "ADHD 友好的代码视觉锚点、分块学习、德语朗读与点击填空。",
-  "version": "0.4.1",
+  "version": "0.5.0",
   "publisher": "adhd-code-focus",
   "private": true,
   "license": "MIT",
@@ -43,6 +43,8 @@
       { "command": "adhdCodeFocus.resetLocalProgress", "title": "ADHD Code Focus: Reset Local Progress" },
       { "command": "adhdCodeFocus.setGeminiApiKey", "title": "ADHD Code Focus: Set Gemini API Key" },
       { "command": "adhdCodeFocus.clearGeminiApiKey", "title": "ADHD Code Focus: Clear Gemini API Key" },
+      { "command": "adhdCodeFocus.setDeepSeekApiKey", "title": "ADHD Code Focus: Set DeepSeek API Key" },
+      { "command": "adhdCodeFocus.clearDeepSeekApiKey", "title": "ADHD Code Focus: Clear DeepSeek API Key" },
       { "command": "adhdCodeFocus.openLearningRecords", "title": "ADHD Code Focus: Open Learning Records Folder" }
     ],
     "keybindings": [
@@ -106,8 +108,18 @@
         "adhdCodeFocus.tts.autoPlay": {
           "type": "boolean", "default": true, "description": "打开学习卡片时自动朗读；关闭后只在点击英语重播时朗读。"
         },
+        "adhdCodeFocus.ai.provider": {
+          "type": "string",
+          "enum": ["gemini", "deepseek"],
+          "enumDescriptions": ["使用 Google Gemini 生成解释。", "使用 DeepSeek 生成解释。"],
+          "default": "gemini",
+          "description": "学习卡片和行级解释使用的 AI 服务。"
+        },
         "adhdCodeFocus.gemini.model": {
           "type": "string", "default": "gemini-3.5-flash", "description": "用于生成卡片简洁解释的 Gemini 模型 ID。"
+        },
+        "adhdCodeFocus.deepseek.model": {
+          "type": "string", "default": "deepseek-v4-flash", "description": "用于生成卡片简洁解释的 DeepSeek 模型 ID。"
         }
       }
     }

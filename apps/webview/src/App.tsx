@@ -18,38 +18,39 @@ export function App() {
   const [quizState, setQuizState] = useState<QuizState>(initialQuizState);
   const [speaking, setSpeaking] = useState(false);
   const [explanations, setExplanations] = useState<Record<string, ExplanationState>>({});
-  const [geminiRevision, setGeminiRevision] = useState(0);
+  const [aiRevision, setAiRevision] = useState(0);
+  const [aiProvider, setAiProvider] = useState({ provider: "gemini", label: "Gemini", model: "" });
   const [lineExplanation, setLineExplanation] = useState<LineExplanationState | null>(null);
   const startedAt = useRef(Date.now());
   const completionSent = useRef(false);
   const autoPlayedChunk = useRef<string | null>(null);
   const cachedExplanationIds = useRef(new Set<string>());
   const pendingLineRequest = useRef<{ chunkId: string; lineIndex: number } | null>(null);
+  const aiProviderRef = useRef("gemini");
 
   useEffect(() => {
     const listener = (event: MessageEvent) => {
       if (event.data?.type === "session/init") {
         const payload = event.data.payload as {
           session: LearningSessionDto;
-          explanations: Record<string, string>;
+          ai: { provider: string; label: string; model: string };
         };
-        cachedExplanationIds.current = new Set(Object.keys(payload.explanations));
-        setExplanations(Object.fromEntries(
-          Object.entries(payload.explanations).map(([chunkId, text]) => [
-            chunkId,
-            { status: "ready", text, source: "local" } satisfies ExplanationState,
-          ]),
-        ));
+        cachedExplanationIds.current.clear();
+        setExplanations({});
+        aiProviderRef.current = payload.ai.provider;
+        setAiProvider(payload.ai);
         setSession(payload.session);
-      } else if (event.data?.type === "gemini/explanation") {
+      } else if (event.data?.type === "ai/explanation") {
         const payload = event.data.payload as {
           chunkId: string;
           status: ExplanationState["status"];
           text?: string;
           message?: string;
+          provider?: string;
         };
+        if (payload.provider && payload.provider !== aiProviderRef.current) return;
         const state: ExplanationState = payload.status === "ready"
-          ? { status: "ready", text: payload.text ?? "", source: "api" }
+          ? { status: "ready", text: payload.text ?? "", source: event.data.payload.source ?? "api" }
           : payload.status === "error"
             ? { status: "error", message: payload.message ?? "解释生成失败。" }
             : payload.status === "needs-key"
@@ -57,12 +58,12 @@ export function App() {
               : { status: "loading" };
         if (state.status === "ready") cachedExplanationIds.current.add(payload.chunkId);
         setExplanations((current) => ({ ...current, [payload.chunkId]: state }));
-      } else if (event.data?.type === "gemini/configured") {
-        setGeminiRevision((value) => value + 1);
+      } else if (event.data?.type === "ai/configured") {
+        setAiRevision((value) => value + 1);
         if (pendingLineRequest.current) {
-          vscode.postMessage({ type: "gemini/explain-line", payload: pendingLineRequest.current });
+          vscode.postMessage({ type: "ai/explain-line", payload: pendingLineRequest.current });
         }
-      } else if (event.data?.type === "gemini/line-explanation") {
+      } else if (event.data?.type === "ai/line-explanation") {
         const payload = event.data.payload as {
           chunkId: string;
           lineIndex: number;
@@ -70,7 +71,9 @@ export function App() {
           text?: string;
           message?: string;
           source?: "local" | "api";
+          provider?: string;
         };
+        if (payload.provider && payload.provider !== aiProviderRef.current) return;
         setLineExplanation((current) => {
           if (!current || current.chunkId !== payload.chunkId || current.lineIndex !== payload.lineIndex) return current;
           return {
@@ -81,6 +84,14 @@ export function App() {
             ...(payload.source !== undefined ? { source: payload.source } : {}),
           };
         });
+      } else if (event.data?.type === "ai/provider-update") {
+        cachedExplanationIds.current.clear();
+        pendingLineRequest.current = null;
+        setLineExplanation(null);
+        setExplanations({});
+        aiProviderRef.current = event.data.payload.provider;
+        setAiProvider(event.data.payload);
+        setAiRevision((value) => value + 1);
       } else if (event.data?.type === "settings/update") {
         const ttsAutoPlay = event.data.payload?.ttsAutoPlay === true;
         if (!ttsAutoPlay) {
@@ -147,8 +158,8 @@ export function App() {
     if (!chunk) return;
     if (cachedExplanationIds.current.has(chunk.id)) return;
     setExplanations((current) => ({ ...current, [chunk.id]: { status: "loading" } }));
-    vscode.postMessage({ type: "gemini/explain", payload: { chunkId: chunk.id } });
-  }, [chunk?.id, geminiRevision]);
+    vscode.postMessage({ type: "ai/explain", payload: { chunkId: chunk.id } });
+  }, [chunk?.id, aiRevision]);
 
   if (!session || !chunk) return <main className="loading" aria-live="polite">正在准备学习卡片…</main>;
 
@@ -175,7 +186,7 @@ export function App() {
   const explanation = explanations[chunk.id] ?? { status: "loading" };
   const retryExplanation = () => {
     setExplanations((current) => ({ ...current, [chunk.id]: { status: "loading" } }));
-    vscode.postMessage({ type: "gemini/explain", payload: { chunkId: chunk.id } });
+    vscode.postMessage({ type: "ai/explain", payload: { chunkId: chunk.id } });
   };
   const explainLine = (lineIndex: number, code: string) => {
     const request = { chunkId: chunk.id, lineIndex };
@@ -186,7 +197,7 @@ export function App() {
       code,
       status: "loading",
     });
-    vscode.postMessage({ type: "gemini/explain-line", payload: request });
+    vscode.postMessage({ type: "ai/explain-line", payload: request });
   };
   const retryLineExplanation = () => {
     if (!lineExplanation) return;
@@ -194,7 +205,7 @@ export function App() {
     pendingLineRequest.current = request;
     const { message: _message, ...withoutMessage } = lineExplanation;
     setLineExplanation({ ...withoutMessage, status: "loading" });
-    vscode.postMessage({ type: "gemini/explain-line", payload: request });
+    vscode.postMessage({ type: "ai/explain-line", payload: request });
   };
 
   return <main>
@@ -212,16 +223,16 @@ export function App() {
       </div>
     </header>
 
-    <section className="explanation" aria-label="Gemini 代码解释" aria-live="polite">
-      <div className="explanation-title"><span className="spark">✦</span> Gemini 简洁解释</div>
+    <section className="explanation" aria-label={`${aiProvider.label} 代码解释`} aria-live="polite">
+      <div className="explanation-title"><span className="spark">✦</span> {aiProvider.label} 简洁解释</div>
       {explanation.status === "loading" && <p>正在理解当前代码片段…</p>}
       {explanation.status === "ready" && <>
         <AdhdExplanation text={explanation.text} boldRatio={session.settings.boldRatio} />
         {explanation.source === "local" && <span className="local-record">已从 D:\codeLearn 读取</span>}
       </>}
       {explanation.status === "needs-key" && <div className="explanation-setup">
-        <p>配置 API Key 后，当前卡片代码会发送给 Gemini 生成解释。</p>
-        <button className="secondary" onClick={() => vscode.postMessage({ type: "gemini/setup" })}>设置 Gemini API Key</button>
+        <p>配置 API Key 后，当前卡片代码会发送给 {aiProvider.label} 生成解释。</p>
+        <button className="secondary" onClick={() => vscode.postMessage({ type: "ai/setup" })}>设置 {aiProvider.label} API Key</button>
       </div>}
       {explanation.status === "error" && <div className="explanation-setup error-box">
         <p>{explanation.message}</p>
@@ -259,12 +270,13 @@ export function App() {
     {lineExplanation && <DraggableLineExplanation
       value={lineExplanation}
       boldRatio={session.settings.boldRatio}
+      providerName={aiProvider.label}
       onClose={() => {
         setLineExplanation(null);
         pendingLineRequest.current = null;
       }}
       onRetry={retryLineExplanation}
-      onSetup={() => vscode.postMessage({ type: "gemini/setup" })}
+      onSetup={() => vscode.postMessage({ type: "ai/setup" })}
     />}
   </main>;
 }

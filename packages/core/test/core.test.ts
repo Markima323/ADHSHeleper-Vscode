@@ -7,6 +7,7 @@ import {
   chunkByLines,
   createClozeQuiz,
   extractGeminiExplanation,
+  extractDeepSeekExplanation,
   formatExplanationLines,
   splitIdentifier,
 } from "../src/index.js";
@@ -81,6 +82,18 @@ describe("Gemini explanation helpers", () => {
   it("places every Chinese sentence after a full stop on a new line", () => {
     expect(formatExplanationLines("第一句。 第二句。第三句。"))
       .toBe("第一句。\n第二句。\n第三句。");
+  });
+});
+
+describe("DeepSeek explanation helpers", () => {
+  it("extracts assistant message content", () => {
+    expect(extractDeepSeekExplanation({
+      choices: [{ message: { role: "assistant", content: "  简洁解释。 " } }],
+    })).toBe("简洁解释。");
+  });
+
+  it("rejects malformed responses", () => {
+    expect(extractDeepSeekExplanation({ choices: [] })).toBeUndefined();
   });
 });
 

@@ -4,9 +4,10 @@ type ControlMessage =
   | { type: "toggle" }
   | { type: "startLearning" }
   | { type: "ready" }
-  | { type: "autoPlay/set"; payload: { enabled: boolean } };
+  | { type: "autoPlay/set"; payload: { enabled: boolean } }
+  | { type: "aiProvider/set"; payload: { provider: "gemini" | "deepseek" } };
 
-type ControlState = { enabled: boolean; hasEditor: boolean; autoPlay: boolean };
+type ControlState = { enabled: boolean; hasEditor: boolean; autoPlay: boolean; aiProvider: "gemini" | "deepseek" };
 
 export class ControlViewProvider implements vscode.WebviewViewProvider {
   static readonly viewType = "adhdCodeFocus.controls";
@@ -27,6 +28,14 @@ export class ControlViewProvider implements vscode.WebviewViewProvider {
         await vscode.workspace.getConfiguration("adhdCodeFocus").update(
           "tts.autoPlay",
           message.payload.enabled,
+          vscode.ConfigurationTarget.Global,
+        );
+        this.update();
+      } else if (message.type === "aiProvider/set"
+        && (message.payload?.provider === "gemini" || message.payload?.provider === "deepseek")) {
+        await vscode.workspace.getConfiguration("adhdCodeFocus").update(
+          "ai.provider",
+          message.payload.provider,
           vscode.ConfigurationTarget.Global,
         );
         this.update();
@@ -58,6 +67,10 @@ export class ControlViewProvider implements vscode.WebviewViewProvider {
   button:disabled { opacity: .5; cursor: not-allowed; }
   button:focus-visible { outline: 2px solid var(--vscode-focusBorder); outline-offset: 2px; }
   .setting-row { display: flex; align-items: center; justify-content: space-between; gap: 12px; margin-top: 15px; padding: 11px 0; border-top: 1px solid var(--vscode-widget-border, rgba(127,127,127,.25)); border-bottom: 1px solid var(--vscode-widget-border, rgba(127,127,127,.25)); }
+  .provider-row { margin-top: 15px; }
+  .provider-row label { display: block; margin-bottom: 6px; font-size: 13px; font-weight: 600; }
+  select { width: 100%; min-height: 32px; padding: 4px 8px; color: var(--vscode-dropdown-foreground); background: var(--vscode-dropdown-background); border: 1px solid var(--vscode-dropdown-border); border-radius: 3px; font: inherit; }
+  select:focus { outline: 1px solid var(--vscode-focusBorder); outline-offset: -1px; }
   .setting-copy { min-width: 0; }
   .setting-copy strong { display: block; margin-bottom: 3px; font-size: 13px; }
   .setting-copy span { color: var(--vscode-descriptionForeground); font-size: 11px; line-height: 1.4; }
@@ -76,6 +89,13 @@ export class ControlViewProvider implements vscode.WebviewViewProvider {
     <button id="toggle" type="button">切换部分加粗</button>
     <button id="learn" class="secondary" type="button">开始学习</button>
   </div>
+  <div class="provider-row">
+    <label for="aiProvider">AI 解释服务</label>
+    <select id="aiProvider" aria-label="选择 AI 解释服务">
+      <option value="gemini">Gemini</option>
+      <option value="deepseek">DeepSeek</option>
+    </select>
+  </div>
   <div class="setting-row">
     <div class="setting-copy"><strong>自动朗读</strong><span id="autoPlayText">打开卡片时自动播放英语语音</span></div>
     <label class="switch" title="切换自动朗读">
@@ -91,16 +111,19 @@ export class ControlViewProvider implements vscode.WebviewViewProvider {
     const status = document.getElementById('status');
     const autoPlay = document.getElementById('autoPlay');
     const autoPlayText = document.getElementById('autoPlayText');
+    const aiProvider = document.getElementById('aiProvider');
     toggle.addEventListener('click', () => vscode.postMessage({ type: 'toggle' }));
     learn.addEventListener('click', () => vscode.postMessage({ type: 'startLearning' }));
     autoPlay.addEventListener('change', () => vscode.postMessage({ type: 'autoPlay/set', payload: { enabled: autoPlay.checked } }));
+    aiProvider.addEventListener('change', () => vscode.postMessage({ type: 'aiProvider/set', payload: { provider: aiProvider.value } }));
     window.addEventListener('message', (event) => {
       if (event.data?.type !== 'state') return;
-      const { enabled, hasEditor, autoPlay: autoPlayEnabled } = event.data.payload;
+      const { enabled, hasEditor, autoPlay: autoPlayEnabled, aiProvider: selectedProvider } = event.data.payload;
       toggle.disabled = !hasEditor;
       learn.disabled = !hasEditor;
       toggle.textContent = enabled ? '关闭部分加粗' : '启用部分加粗';
       autoPlay.checked = autoPlayEnabled;
+      aiProvider.value = selectedProvider;
       autoPlayText.textContent = autoPlayEnabled ? '打开卡片时自动播放英语语音' : '仅点击英语重播时播放';
       status.textContent = hasEditor ? ('部分加粗：' + (enabled ? '已开启' : '已关闭')) : '请先打开一个代码文件。';
     });

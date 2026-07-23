@@ -10,6 +10,7 @@ const cardFormatVersion = 2;
 type StoredExplanation = {
   text: string;
   model: string;
+  provider?: "gemini" | "deepseek";
   updatedAt: string;
   promptVersion: number;
 };
@@ -31,10 +32,10 @@ type RecordFile = {
 
 export type OpenedLearningRecord = {
   session: LearningSessionDto;
-  explanations: Record<string, string>;
-  lineExplanations: Record<string, string>;
-  saveExplanation(chunkId: string, text: string, model: string): Promise<void>;
-  saveLineExplanation(lineKey: string, text: string, model: string): Promise<void>;
+  getExplanation(chunkId: string, provider: string, model: string): string | undefined;
+  getLineExplanation(lineKey: string, provider: string, model: string): string | undefined;
+  saveExplanation(chunkId: string, text: string, provider: string, model: string): Promise<void>;
+  saveLineExplanation(lineKey: string, text: string, provider: string, model: string): Promise<void>;
 };
 
 export class LearningRecordStore {
@@ -77,21 +78,15 @@ export class LearningRecordStore {
       createdAt: freshSession.createdAt,
       settings: freshSession.settings,
     };
-    const explanations = Object.fromEntries(
-      Object.entries(stored.explanations)
-        .filter(([, value]) => value.promptVersion === explanationPromptVersion)
-        .map(([chunkId, value]) => [chunkId, value.text]),
-    );
-    const lineExplanations = currentExplanationTexts(stored.lineExplanations ?? {});
     return {
       session: restoredSession,
-      explanations,
-      lineExplanations,
-      saveExplanation: (chunkId, text, model) => this.enqueueSave(
-        filePath, sourceUriHash, sourceHash, "chunk", chunkId, text, model,
+      getExplanation: (chunkId, provider, model) => findExplanation(stored!.explanations, chunkId, provider, model),
+      getLineExplanation: (lineKey, provider, model) => findExplanation(stored!.lineExplanations ?? {}, lineKey, provider, model),
+      saveExplanation: (chunkId, text, provider, model) => this.enqueueSave(
+        filePath, sourceUriHash, sourceHash, "chunk", chunkId, text, provider, model,
       ),
-      saveLineExplanation: (lineKey, text, model) => this.enqueueSave(
-        filePath, sourceUriHash, sourceHash, "line", lineKey, text, model,
+      saveLineExplanation: (lineKey, text, provider, model) => this.enqueueSave(
+        filePath, sourceUriHash, sourceHash, "line", lineKey, text, provider, model,
       ),
     };
   }
@@ -103,6 +98,7 @@ export class LearningRecordStore {
     target: "chunk" | "line",
     recordKey: string,
     text: string,
+    provider: string,
     model: string,
   ): Promise<void> {
     const operation = this.writeQueue.then(async () => {
@@ -118,9 +114,10 @@ export class LearningRecordStore {
       const destination = target === "chunk"
         ? stored.explanations
         : (stored.lineExplanations ??= {});
-      destination[recordKey] = {
+      destination[providerRecordKey(recordKey, provider, model)] = {
         text,
         model,
+        provider: provider === "deepseek" ? "deepseek" : "gemini",
         updatedAt: new Date().toISOString(),
         promptVersion: explanationPromptVersion,
       };
@@ -181,10 +178,22 @@ function migrateExplanations(
   }));
 }
 
-function currentExplanationTexts(
+function providerRecordKey(baseKey: string, provider: string, model: string): string {
+  return `${baseKey}:ai:${provider}:${model}`;
+}
+
+function findExplanation(
   explanations: Record<string, StoredExplanation>,
-): Record<string, string> {
-  return Object.fromEntries(Object.entries(explanations)
-    .filter(([, value]) => value.promptVersion === explanationPromptVersion)
-    .map(([key, value]) => [key, value.text]));
+  baseKey: string,
+  provider: string,
+  model: string,
+): string | undefined {
+  const exact = explanations[providerRecordKey(baseKey, provider, model)];
+  if (exact?.promptVersion === explanationPromptVersion) return exact.text;
+  const legacy = explanations[baseKey];
+  if (provider === "gemini"
+    && legacy?.promptVersion === explanationPromptVersion
+    && (legacy.provider ?? "gemini") === "gemini"
+    && legacy.model === model) return legacy.text;
+  return undefined;
 }
