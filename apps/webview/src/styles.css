@@ -22,6 +22,7 @@ h1 { margin: 7px 0 14px; font-size: clamp(20px, 3vw, 30px); }
 .explanation-title { margin-bottom: 7px; font-size: 12px; font-weight: 700; letter-spacing: .04em; color: var(--vscode-descriptionForeground); }
 .explanation-title .spark { color: var(--accent); margin-right: 5px; }
 .explanation p { margin: 0; line-height: 1.65; }
+.explanation-text strong { color: inherit; font-weight: 750; }
 .local-record { display: inline-block; margin-top: 8px; padding: 2px 7px; border-radius: 999px; color: var(--vscode-descriptionForeground); background: var(--vscode-badge-background); font-size: 11px; }
 .explanation-setup { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
 .explanation-setup button { flex: 0 0 auto; }

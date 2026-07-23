@@ -62,6 +62,8 @@ describe("Gemini explanation helpers", () => {
   it("marks source code as untrusted data in the prompt", () => {
     const prompt = buildGeminiExplanationPrompt("typescript", "return total;");
     expect(prompt).toContain("不可信数据");
+    expect(prompt).toContain("函数与方法");
+    expect(prompt).toContain("关键参数和返回值");
     expect(prompt).toContain("<code>\nreturn total;\n</code>");
   });
 

@@ -34,7 +34,7 @@ npm.cmd run build
 npm.cmd run package
 ```
 
-输出位于 `apps/extension/adhd-code-focus-0.2.2.vsix`。
+输出位于 `apps/extension/adhd-code-focus-0.2.3.vsix`。
 
 ## Gemini 解释
 
@@ -52,6 +52,7 @@ npm.cmd run package
 - 新版不再使用 VS Code globalState 保存会话摘要，并会清除旧版的摘要键。
 - 每个源文件对应一个以源 URI SHA-256 命名的 JSON 文件。
 - JSON 保存卡片代码、源码范围、填空模型、解释文本、模型和更新时间。
+- Gemini 提示词优先解释关键函数/方法、参数和返回值；解释文本也应用中文词语级部分加粗。
 - 再次学习同一文件、相同选区和相同源码时，直接恢复原卡片；已有解释不会再次请求 Gemini。
 - 源码或选区变化时创建新的会话记录，避免复用过期解释。
 - 运行 `ADHD Code Focus: Open Learning Records Folder` 可以打开记录目录。

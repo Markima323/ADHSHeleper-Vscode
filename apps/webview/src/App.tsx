@@ -1,6 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from "react";
 import type { LearningSessionDto } from "@adhd-code-focus/core";
 import { AdhdText } from "./AdhdText";
+import { AdhdExplanation } from "./AdhdExplanation";
 import { chooseAnswer, initialQuizState, undoAnswer, type QuizState } from "./quizState";
 import { vscode } from "./vscode";
 
@@ -153,7 +154,7 @@ export function App() {
       <div className="explanation-title"><span className="spark">✦</span> Gemini 简洁解释</div>
       {explanation.status === "loading" && <p>正在理解当前代码片段…</p>}
       {explanation.status === "ready" && <>
-        <p>{explanation.text}</p>
+        <AdhdExplanation text={explanation.text} boldRatio={session.settings.boldRatio} />
         {explanation.source === "local" && <span className="local-record">已从 D:\codeLearn 读取</span>}
       </>}
       {explanation.status === "needs-key" && <div className="explanation-setup">

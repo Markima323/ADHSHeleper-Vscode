@@ -4,11 +4,13 @@ import { join, resolve } from "node:path";
 import type { LearningSessionDto } from "@adhd-code-focus/core";
 
 const defaultStorageDirectory = resolve("D:\\codeLearn");
+const explanationPromptVersion = 2;
 
 type StoredExplanation = {
   text: string;
   model: string;
   updatedAt: string;
+  promptVersion: number;
 };
 
 type StoredSession = {
@@ -65,7 +67,9 @@ export class LearningRecordStore {
       settings: freshSession.settings,
     };
     const explanations = Object.fromEntries(
-      Object.entries(stored.explanations).map(([chunkId, value]) => [chunkId, value.text]),
+      Object.entries(stored.explanations)
+        .filter(([, value]) => value.promptVersion === explanationPromptVersion)
+        .map(([chunkId, value]) => [chunkId, value.text]),
     );
     return {
       session: restoredSession,
@@ -91,7 +95,12 @@ export class LearningRecordStore {
       if (!stored.session.chunks.some((chunk) => chunk.id === chunkId)) {
         throw new Error("本地学习记录中不存在这个代码卡片。");
       }
-      stored.explanations[chunkId] = { text, model, updatedAt: new Date().toISOString() };
+      stored.explanations[chunkId] = {
+        text,
+        model,
+        updatedAt: new Date().toISOString(),
+        promptVersion: explanationPromptVersion,
+      };
       stored.updatedAt = new Date().toISOString();
       await writeRecord(filePath, record);
     });
