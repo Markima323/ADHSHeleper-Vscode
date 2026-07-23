@@ -2,7 +2,7 @@
   "name": "adhd-code-focus",
   "displayName": "ADHD Code Focus",
   "description": "ADHD 友好的代码视觉锚点、分块学习、德语朗读与点击填空。",
-  "version": "0.1.2",
+  "version": "0.2.0",
   "publisher": "adhd-code-focus",
   "private": true,
   "license": "MIT",
@@ -39,7 +39,9 @@
       { "command": "adhdCodeFocus.startLearningSelection", "title": "ADHD Code Focus: Start Learning from Selection" },
       { "command": "adhdCodeFocus.startLearningSymbol", "title": "ADHD Code Focus: Start Learning from Current Symbol" },
       { "command": "adhdCodeFocus.previewIntensity", "title": "ADHD Code Focus: Preview Intensity" },
-      { "command": "adhdCodeFocus.resetLocalProgress", "title": "ADHD Code Focus: Reset Local Progress" }
+      { "command": "adhdCodeFocus.resetLocalProgress", "title": "ADHD Code Focus: Reset Local Progress" },
+      { "command": "adhdCodeFocus.setGeminiApiKey", "title": "ADHD Code Focus: Set Gemini API Key" },
+      { "command": "adhdCodeFocus.clearGeminiApiKey", "title": "ADHD Code Focus: Clear Gemini API Key" }
     ],
     "keybindings": [
       { "command": "adhdCodeFocus.toggle", "key": "ctrl+alt+b", "mac": "cmd+alt+b" },
@@ -98,6 +100,9 @@
         },
         "adhdCodeFocus.tts.rate": {
           "type": "number", "default": 0.9, "minimum": 0.5, "maximum": 1.5, "description": "朗读速度。"
+        },
+        "adhdCodeFocus.gemini.model": {
+          "type": "string", "default": "gemini-3.5-flash", "description": "用于生成卡片简洁解释的 Gemini 模型 ID。"
         }
       }
     }

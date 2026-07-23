@@ -1,11 +1,13 @@
 import * as vscode from "vscode";
 import { ControlViewProvider } from "./controlView.js";
 import { DecorationEngine } from "./decorationEngine.js";
+import { GeminiClient } from "./geminiClient.js";
 import { LearningPanel } from "./learningPanel.js";
 import { buildLearningSession, sourceForCurrentSymbol, sourceForSelectionOrDocument } from "./session.js";
 
 export function activate(context: vscode.ExtensionContext): void {
   const engine = new DecorationEngine();
+  const gemini = new GeminiClient(context);
   const controls = new ControlViewProvider(() => {
     const editor = vscode.window.activeTextEditor;
     return { enabled: editor ? engine.isEnabled(editor) : false, hasEditor: Boolean(editor) };
@@ -36,7 +38,7 @@ export function activate(context: vscode.ExtensionContext): void {
         void vscode.window.showInformationMessage("请选择包含代码的范围后再开始学习。");
         return;
       }
-      LearningPanel.open(context, buildLearningSession(editor.document, source));
+      LearningPanel.open(context, buildLearningSession(editor.document, source), gemini);
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
       void vscode.window.showErrorMessage(`ADHD Code Focus 无法打开学习面板：${detail}`);
@@ -65,6 +67,15 @@ export function activate(context: vscode.ExtensionContext): void {
     vscode.commands.registerCommand("adhdCodeFocus.resetLocalProgress", async () => {
       await context.globalState.update("learningHistory", undefined);
       void vscode.window.showInformationMessage("ADHD Code Focus 本地学习记录已清除。 ");
+    }),
+    vscode.commands.registerCommand("adhdCodeFocus.setGeminiApiKey", async () => {
+      if (await gemini.configureApiKey()) {
+        void vscode.window.showInformationMessage("Gemini API Key 已安全保存。 ");
+      }
+    }),
+    vscode.commands.registerCommand("adhdCodeFocus.clearGeminiApiKey", async () => {
+      await gemini.clearApiKey();
+      void vscode.window.showInformationMessage("Gemini API Key 已从 VS Code 安全存储中删除。 ");
     }),
     vscode.window.onDidChangeActiveTextEditor((editor) => {
       if (editor) engine.schedule(editor, 0);

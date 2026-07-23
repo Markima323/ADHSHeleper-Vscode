@@ -4,18 +4,45 @@ import { AdhdText } from "./AdhdText";
 import { chooseAnswer, initialQuizState, undoAnswer, type QuizState } from "./quizState";
 import { vscode } from "./vscode";
 
+type ExplanationState =
+  | { status: "loading" }
+  | { status: "needs-key" }
+  | { status: "ready"; text: string }
+  | { status: "error"; message: string };
+
 export function App() {
   const [session, setSession] = useState<LearningSessionDto | null>(null);
   const [chunkIndex, setChunkIndex] = useState(0);
   const [quizState, setQuizState] = useState<QuizState>(initialQuizState);
   const [speaking, setSpeaking] = useState(false);
+  const [explanations, setExplanations] = useState<Record<string, ExplanationState>>({});
+  const [geminiRevision, setGeminiRevision] = useState(0);
   const startedAt = useRef(Date.now());
   const completionSent = useRef(false);
   const autoPlayedChunk = useRef<string | null>(null);
 
   useEffect(() => {
     const listener = (event: MessageEvent) => {
-      if (event.data?.type === "session/init") setSession(event.data.payload as LearningSessionDto);
+      if (event.data?.type === "session/init") {
+        setSession(event.data.payload as LearningSessionDto);
+      } else if (event.data?.type === "gemini/explanation") {
+        const payload = event.data.payload as {
+          chunkId: string;
+          status: ExplanationState["status"];
+          text?: string;
+          message?: string;
+        };
+        const state: ExplanationState = payload.status === "ready"
+          ? { status: "ready", text: payload.text ?? "" }
+          : payload.status === "error"
+            ? { status: "error", message: payload.message ?? "解释生成失败。" }
+            : payload.status === "needs-key"
+              ? { status: "needs-key" }
+              : { status: "loading" };
+        setExplanations((current) => ({ ...current, [payload.chunkId]: state }));
+      } else if (event.data?.type === "gemini/configured") {
+        setGeminiRevision((value) => value + 1);
+      }
     };
     window.addEventListener("message", listener);
     vscode.postMessage({ type: "ready" });
@@ -67,6 +94,12 @@ export function App() {
     };
   }, [session, chunk]);
 
+  useEffect(() => {
+    if (!chunk) return;
+    setExplanations((current) => ({ ...current, [chunk.id]: { status: "loading" } }));
+    vscode.postMessage({ type: "gemini/explain", payload: { chunkId: chunk.id } });
+  }, [chunk?.id, geminiRevision]);
+
   if (!session || !chunk) return <main className="loading" aria-live="polite">正在准备学习卡片…</main>;
 
   const moveTo = (next: number) => {
@@ -87,6 +120,11 @@ export function App() {
     }
   };
   const used = new Set(quizState.answers);
+  const explanation = explanations[chunk.id] ?? { status: "loading" };
+  const retryExplanation = () => {
+    setExplanations((current) => ({ ...current, [chunk.id]: { status: "loading" } }));
+    vscode.postMessage({ type: "gemini/explain", payload: { chunkId: chunk.id } });
+  };
 
   return <main>
     <header>
@@ -96,6 +134,20 @@ export function App() {
         <span style={{ width: `${((chunkIndex + 1) / session.chunks.length) * 100}%` }} />
       </div>
     </header>
+
+    <section className="explanation" aria-label="Gemini 代码解释" aria-live="polite">
+      <div className="explanation-title"><span className="spark">✦</span> Gemini 简洁解释</div>
+      {explanation.status === "loading" && <p>正在理解当前代码片段…</p>}
+      {explanation.status === "ready" && <p>{explanation.text}</p>}
+      {explanation.status === "needs-key" && <div className="explanation-setup">
+        <p>配置 API Key 后，当前卡片代码会发送给 Gemini 生成解释。</p>
+        <button className="secondary" onClick={() => vscode.postMessage({ type: "gemini/setup" })}>设置 Gemini API Key</button>
+      </div>}
+      {explanation.status === "error" && <div className="explanation-setup error-box">
+        <p>{explanation.message}</p>
+        <button className="secondary" onClick={retryExplanation}>重试</button>
+      </div>}
+    </section>
 
     <section className="card" aria-label="代码学习卡片">
       <div className="card-actions">

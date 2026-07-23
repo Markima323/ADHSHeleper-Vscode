@@ -10,6 +10,7 @@
 - 从选区、当前函数/类或当前文件创建分块学习卡片。
 - 每卡最多 10 个代码词元的点击式填空，支持即时反馈、撤销和重置。
 - 每张卡片自动使用系统 Web Speech API 进行一次英语代码朗读，朗读期间仍可填空。
+- 可选 Gemini 简洁解释：只发送当前卡片代码，API Key 保存在 VS Code SecretStorage。
 - VS Code 主题、高对比度、键盘焦点和减少动态效果适配。
 - 最近 200 条学习会话摘要保存在 `globalState`，不保存源码。
 
@@ -32,7 +33,17 @@ npm.cmd run build
 npm.cmd run package
 ```
 
-输出位于 `apps/extension/adhd-code-focus-0.1.2.vsix`。
+输出位于 `apps/extension/adhd-code-focus-0.2.0.vsix`。
+
+## Gemini 解释
+
+学习卡片会在进度条下方显示“Gemini 简洁解释”。首次点击“设置 Gemini API Key”后，密钥会保存到 VS Code SecretStorage。之后每张卡片第一次显示时自动请求解释。
+
+- 使用 Gemini Interactions API 和 `gemini-3.5-flash`。
+- 请求设置 `store: false` 和 `thinking_level: minimal`。
+- 只发送当前卡片的语言 ID 和代码，不发送文件路径、其他卡片或工作区内容。
+- 代码和解释不会写入本地学习记录；面板关闭后内存缓存释放。
+- 可通过命令面板运行 `ADHD Code Focus: Clear Gemini API Key` 删除密钥。
 
 ## 工程结构
 

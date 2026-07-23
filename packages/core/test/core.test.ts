@@ -1,5 +1,13 @@
 import { describe, expect, it } from "vitest";
-import { buildEnglishNarration, calculateBoldRanges, chunkByLines, createClozeQuiz, splitIdentifier } from "../src/index.js";
+import {
+  buildEnglishNarration,
+  buildGeminiExplanationPrompt,
+  calculateBoldRanges,
+  chunkByLines,
+  createClozeQuiz,
+  extractGeminiExplanation,
+  splitIdentifier,
+} from "../src/index.js";
 import type { TokenSegment } from "../src/index.js";
 
 describe("identifier splitting", () => {
@@ -47,5 +55,22 @@ describe("English narration", () => {
       { id: "1", text: "function", kind: "word", boldRanges: [] },
       { id: "2", text: "calculateTotal", kind: "word", boldRanges: [] },
     ])).toBe("function, calculate, Total");
+  });
+});
+
+describe("Gemini explanation helpers", () => {
+  it("marks source code as untrusted data in the prompt", () => {
+    const prompt = buildGeminiExplanationPrompt("typescript", "return total;");
+    expect(prompt).toContain("不可信数据");
+    expect(prompt).toContain("<code>\nreturn total;\n</code>");
+  });
+
+  it("extracts only model text output", () => {
+    expect(extractGeminiExplanation({
+      steps: [
+        { type: "thought", content: [{ type: "text", text: "hidden" }] },
+        { type: "model_output", content: [{ type: "text", text: "  简洁解释。 " }] },
+      ],
+    })).toBe("简洁解释。");
   });
 });

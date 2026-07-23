@@ -1,20 +1,25 @@
 import * as vscode from "vscode";
 import type { LearningSessionDto, SourceRangeDto } from "@adhd-code-focus/core";
+import { GeminiApiError, GeminiClient } from "./geminiClient.js";
 
 type WebviewMessage =
   | { type: "ready" }
   | { type: "source/reveal"; payload: { uri: string; range: SourceRangeDto } }
   | { type: "session/complete"; payload: { score: number; durationMs: number } }
-  | { type: "tts/unavailable"; payload: { locale: string } };
+  | { type: "tts/unavailable"; payload: { locale: string } }
+  | { type: "gemini/setup" }
+  | { type: "gemini/explain"; payload: { chunkId: string } };
 
 export class LearningPanel {
-  static open(context: vscode.ExtensionContext, session: LearningSessionDto): void {
+  static open(context: vscode.ExtensionContext, session: LearningSessionDto, gemini: GeminiClient): void {
     const panel = vscode.window.createWebviewPanel(
       "adhdCodeFocus.learning",
       "ADHD Code Focus · 学习模式",
       vscode.ViewColumn.Beside,
       { enableScripts: true, retainContextWhenHidden: true, localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, "media")] },
     );
+    const explanationCache = new Map<string, Promise<string>>();
+    const abortController = new AbortController();
     panel.webview.html = this.html(panel.webview, context.extensionUri);
     panel.webview.onDidReceiveMessage(async (message: WebviewMessage) => {
       if (message.type === "ready") {
@@ -29,8 +34,43 @@ export class LearningPanel {
         ].slice(0, 200));
       } else if (message.type === "tts/unavailable") {
         void vscode.window.showWarningMessage(`未找到 ${message.payload.locale} 英语系统语音，仍可使用文本和填空功能。`);
+      } else if (message.type === "gemini/setup") {
+        if (await gemini.configureApiKey()) {
+          await panel.webview.postMessage({ type: "gemini/configured" });
+          void vscode.window.showInformationMessage("Gemini API Key 已安全保存，可以生成卡片解释。 ");
+        }
+      } else if (message.type === "gemini/explain") {
+        const chunk = session.chunks.find((item) => item.id === message.payload.chunkId);
+        if (!chunk) return;
+        if (!await gemini.hasApiKey()) {
+          await panel.webview.postMessage({
+            type: "gemini/explanation",
+            payload: { chunkId: chunk.id, status: "needs-key" },
+          });
+          return;
+        }
+        let request = explanationCache.get(chunk.id);
+        if (!request) {
+          request = gemini.explain(chunk.languageId, chunk.code, abortController.signal);
+          explanationCache.set(chunk.id, request);
+        }
+        try {
+          const text = await request;
+          await panel.webview.postMessage({
+            type: "gemini/explanation",
+            payload: { chunkId: chunk.id, status: "ready", text },
+          });
+        } catch (error) {
+          explanationCache.delete(chunk.id);
+          const messageText = error instanceof GeminiApiError ? error.message : "Gemini 解释生成失败，请重试。";
+          await panel.webview.postMessage({
+            type: "gemini/explanation",
+            payload: { chunkId: chunk.id, status: "error", message: messageText },
+          });
+        }
       }
     });
+    panel.onDidDispose(() => abortController.abort());
   }
 
   private static async revealSource(uriValue: string, range: SourceRangeDto): Promise<void> {

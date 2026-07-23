@@ -10,3 +10,5 @@ ADHD 友好的 VS Code 本地扩展：通过不修改源码的部分加粗建立
 - 命令面板运行 `ADHD Code Focus: Start Learning from Current Symbol`：学习光标所在函数或类。
 
 基础能力完全本地运行，不上传源码。每张卡片会自动使用系统 Web Speech API 进行一次英语朗读；朗读时也可以填写空位。
+
+Gemini 解释是可选联网功能。用户配置 API Key 后，只把当前卡片代码发送到 Gemini Interactions API，并使用 `store: false`；API Key 保存在 VS Code SecretStorage。

@@ -4,3 +4,4 @@ export * from "./tokenizer.js";
 export * from "./cloze.js";
 export * from "./chunking.js";
 export * from "./narration.js";
+export * from "./gemini.js";

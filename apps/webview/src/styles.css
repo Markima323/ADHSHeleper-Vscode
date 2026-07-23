@@ -18,6 +18,13 @@ header { margin-bottom: 22px; }
 h1 { margin: 7px 0 14px; font-size: clamp(20px, 3vw, 30px); }
 .progress { height: 5px; overflow: hidden; border-radius: 999px; background: var(--vscode-progressBar-background, rgba(127,127,127,.2)); }
 .progress span { display: block; height: 100%; background: var(--accent); transition: width 160ms ease; }
+.explanation { margin: -6px 0 16px; padding: 14px 16px; border: 1px solid var(--border); border-left: 3px solid var(--accent); border-radius: 7px; background: color-mix(in srgb, var(--vscode-sideBar-background) 88%, var(--accent) 12%); }
+.explanation-title { margin-bottom: 7px; font-size: 12px; font-weight: 700; letter-spacing: .04em; color: var(--vscode-descriptionForeground); }
+.explanation-title .spark { color: var(--accent); margin-right: 5px; }
+.explanation p { margin: 0; line-height: 1.65; }
+.explanation-setup { display: flex; align-items: center; justify-content: space-between; gap: 12px; }
+.explanation-setup button { flex: 0 0 auto; }
+.error-box p { color: var(--vscode-errorForeground); }
 .card, .quiz { border: 1px solid var(--border); border-radius: 10px; background: var(--vscode-sideBar-background); }
 .card { overflow: hidden; }
 .card-actions { display: flex; gap: 8px; justify-content: flex-end; padding: 10px 12px; border-bottom: 1px solid var(--border); }
@@ -45,4 +52,4 @@ nav { justify-content: space-between; margin-top: 20px; }
 button:disabled { opacity: .5; cursor: not-allowed; }
 
 @media (prefers-reduced-motion: reduce) { .progress span { transition: none; } }
-@media (max-width: 520px) { .card-actions { justify-content: stretch; } .card-actions button { flex: 1; } pre { padding: 16px; } }
+@media (max-width: 520px) { .card-actions { justify-content: stretch; } .card-actions button { flex: 1; } .explanation-setup { align-items: stretch; flex-direction: column; } pre { padding: 16px; } }

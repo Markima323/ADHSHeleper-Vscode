@@ -1,5 +1,12 @@
 # Changelog
 
+## 0.2.0
+
+- 在卡片进度条和代码之间加入 Gemini 简洁解释。
+- 使用 Gemini Interactions API、无状态请求和 minimal thinking。
+- API Key 使用 VS Code SecretStorage，支持设置、删除和错误重试。
+- 每个卡片会话内缓存解释，避免切换卡片时重复计费。
+
 ## 0.1.2
 
 - 默认改为英语语音，每张学习卡片打开时自动朗读一次。
