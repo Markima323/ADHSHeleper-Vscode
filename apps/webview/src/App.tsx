@@ -84,6 +84,28 @@ export function App() {
             ...(payload.source !== undefined ? { source: payload.source } : {}),
           };
         });
+      } else if (event.data?.type === "ai/line-follow-up") {
+        const payload = event.data.payload as {
+          chunkId: string;
+          lineIndex: number;
+          requestId: string;
+          provider?: string;
+          status: "ready" | "error";
+          text?: string;
+          message?: string;
+        };
+        if (payload.provider && payload.provider !== aiProviderRef.current) return;
+        setLineExplanation((current) => {
+          if (!current || current.chunkId !== payload.chunkId || current.lineIndex !== payload.lineIndex) return current;
+          return {
+            ...current,
+            followUps: (current.followUps ?? []).map((item) => item.id === payload.requestId
+              ? payload.status === "ready"
+                ? { ...item, status: "ready", answer: payload.text ?? "" }
+                : { ...item, status: "error", message: payload.message ?? "回答失败，请重试。" }
+              : item),
+          };
+        });
       } else if (event.data?.type === "ai/provider-update") {
         cachedExplanationIds.current.clear();
         pendingLineRequest.current = null;
@@ -196,6 +218,7 @@ export function App() {
       displayLine: chunk.sourceRange.startLine + lineIndex + 1,
       code,
       status: "loading",
+      followUps: [],
     });
     vscode.postMessage({ type: "ai/explain-line", payload: request });
   };
@@ -206,6 +229,30 @@ export function App() {
     const { message: _message, ...withoutMessage } = lineExplanation;
     setLineExplanation({ ...withoutMessage, status: "loading" });
     vscode.postMessage({ type: "ai/explain-line", payload: request });
+  };
+  const askAboutLine = (question: string) => {
+    if (!lineExplanation || lineExplanation.status !== "ready") return;
+    const requestId = `${Date.now()}-${Math.random().toString(36).slice(2)}`;
+    const history = (lineExplanation.followUps ?? []).flatMap((item) =>
+      item.status === "ready" && item.answer
+        ? [{ question: item.question, answer: item.answer }]
+        : [],
+    );
+    setLineExplanation({
+      ...lineExplanation,
+      followUps: [...(lineExplanation.followUps ?? []), { id: requestId, question, status: "loading" }],
+    });
+    vscode.postMessage({
+      type: "ai/ask-line",
+      payload: {
+        chunkId: lineExplanation.chunkId,
+        lineIndex: lineExplanation.lineIndex,
+        requestId,
+        question,
+        initialExplanation: lineExplanation.text ?? "",
+        history,
+      },
+    });
   };
 
   return <main>
@@ -277,6 +324,7 @@ export function App() {
       }}
       onRetry={retryLineExplanation}
       onSetup={() => vscode.postMessage({ type: "ai/setup" })}
+      onAsk={askAboutLine}
     />}
   </main>;
 }

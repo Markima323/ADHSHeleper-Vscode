@@ -10,7 +10,18 @@ type WebviewMessage =
   | { type: "tts/unavailable"; payload: { locale: string } }
   | { type: "ai/setup" }
   | { type: "ai/explain"; payload: { chunkId: string } }
-  | { type: "ai/explain-line"; payload: { chunkId: string; lineIndex: number } };
+  | { type: "ai/explain-line"; payload: { chunkId: string; lineIndex: number } }
+  | {
+    type: "ai/ask-line";
+    payload: {
+      chunkId: string;
+      lineIndex: number;
+      requestId: string;
+      question: string;
+      initialExplanation: string;
+      history: Array<{ question: string; answer: string }>;
+    };
+  };
 
 export class LearningPanel {
   static open(
@@ -125,6 +136,42 @@ export class LearningPanel {
           requestCache.delete(cacheKey);
           const messageText = error instanceof AiApiError ? error.message : `${identity.label} 行级解释生成失败，请重试。`;
           await panel.webview.postMessage({ type: "ai/line-explanation", payload: { chunkId: chunk.id, lineIndex, provider: identity.provider, status: "error", message: messageText } });
+        }
+      } else if (message.type === "ai/ask-line") {
+        const chunk = session.chunks.find((item) => item.id === message.payload.chunkId);
+        const lines = chunk?.code.split("\n") ?? [];
+        const lineIndex = message.payload.lineIndex;
+        if (!chunk || !Number.isInteger(lineIndex) || lineIndex < 0 || lineIndex >= lines.length) return;
+        const identity = ai.getIdentity();
+        const requestId = String(message.payload.requestId).slice(0, 100);
+        const question = String(message.payload.question).trim().slice(0, 500);
+        const initialExplanation = String(message.payload.initialExplanation).slice(0, 2_000);
+        const history = Array.isArray(message.payload.history)
+          ? message.payload.history.slice(-6).map((item) => ({
+            question: String(item.question).slice(0, 500),
+            answer: String(item.answer).slice(0, 2_000),
+          }))
+          : [];
+        if (!question) return;
+        try {
+          const text = await ai.askLineFollowUp(
+            chunk.languageId,
+            lines[lineIndex] ?? "",
+            initialExplanation,
+            history,
+            question,
+            abortController.signal,
+          );
+          await panel.webview.postMessage({
+            type: "ai/line-follow-up",
+            payload: { chunkId: chunk.id, lineIndex, requestId, provider: identity.provider, status: "ready", text },
+          });
+        } catch (error) {
+          const messageText = error instanceof AiApiError ? error.message : `${identity.label} 回答失败，请重试。`;
+          await panel.webview.postMessage({
+            type: "ai/line-follow-up",
+            payload: { chunkId: chunk.id, lineIndex, requestId, provider: identity.provider, status: "error", message: messageText },
+          });
         }
       }
     });

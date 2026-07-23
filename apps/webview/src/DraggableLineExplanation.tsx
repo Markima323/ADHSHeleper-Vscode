@@ -10,6 +10,15 @@ export type LineExplanationState = {
   text?: string;
   message?: string;
   source?: "local" | "api";
+  followUps?: LineFollowUp[];
+};
+
+export type LineFollowUp = {
+  id: string;
+  question: string;
+  status: "loading" | "ready" | "error";
+  answer?: string;
+  message?: string;
 };
 
 type Props = {
@@ -19,13 +28,27 @@ type Props = {
   onClose(): void;
   onRetry(): void;
   onSetup(): void;
+  onAsk(question: string): void;
 };
 
-export function DraggableLineExplanation({ value, boldRatio, providerName, onClose, onRetry, onSetup }: Props) {
+export function DraggableLineExplanation({ value, boldRatio, providerName, onClose, onRetry, onSetup, onAsk }: Props) {
   const [position, setPosition] = useState<{ x: number; y: number } | null>(null);
+  const [question, setQuestion] = useState("");
   const drag = useRef<{ pointerId: number; offsetX: number; offsetY: number } | null>(null);
 
-  useEffect(() => setPosition(null), [value.chunkId, value.lineIndex]);
+  useEffect(() => {
+    setPosition(null);
+    setQuestion("");
+  }, [value.chunkId, value.lineIndex]);
+
+  const asking = value.followUps?.some((item) => item.status === "loading") ?? false;
+  const submitQuestion = (event: React.FormEvent) => {
+    event.preventDefault();
+    const value = question.trim();
+    if (!value || asking) return;
+    onAsk(value);
+    setQuestion("");
+  };
 
   const onPointerDown = (event: React.PointerEvent<HTMLElement>) => {
     const box = event.currentTarget.parentElement?.getBoundingClientRect();
@@ -71,6 +94,17 @@ export function DraggableLineExplanation({ value, boldRatio, providerName, onClo
       {value.status === "ready" && <>
         <AdhdExplanation text={value.text ?? ""} boldRatio={boldRatio} />
         {value.source === "local" && <span className="local-record">已从 D:\codeLearn 读取</span>}
+        {(value.followUps ?? []).length > 0 && <div className="follow-up-list" aria-live="polite">
+          {(value.followUps ?? []).map((item) => <div className="follow-up-item" key={item.id}>
+            <p className="follow-up-question"><span>你：</span>{item.question}</p>
+            {item.status === "loading" && <p className="floating-message">{providerName} 正在回答…</p>}
+            {item.status === "ready" && <div className="follow-up-answer">
+              <span>{providerName}：</span>
+              <AdhdExplanation text={item.answer ?? ""} boldRatio={boldRatio} />
+            </div>}
+            {item.status === "error" && <p className="follow-up-error">{item.message ?? "回答失败，请重试。"}</p>}
+          </div>)}
+        </div>}
       </>}
       {value.status === "needs-key" && <div className="floating-state">
         <p>需要先配置 {providerName} API Key。</p>
@@ -81,5 +115,16 @@ export function DraggableLineExplanation({ value, boldRatio, providerName, onClo
         <button className="secondary" onClick={onRetry}>重试</button>
       </div>}
     </div>
+    {value.status === "ready" && <form className="follow-up-form" onSubmit={submitQuestion}>
+      <input
+        type="text"
+        value={question}
+        maxLength={500}
+        placeholder={`继续向 ${providerName} 提问…`}
+        aria-label="继续询问这行代码"
+        onChange={(event) => setQuestion(event.target.value)}
+      />
+      <button className="primary" type="submit" disabled={!question.trim() || asking}>发送</button>
+    </form>}
   </aside>;
 }

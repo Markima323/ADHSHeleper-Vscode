@@ -18,4 +18,6 @@ ADHD 友好的 VS Code 本地扩展：通过不修改源码的部分加粗建立
 
 AI 解释是可选联网功能。Gemini 使用 Interactions API 和 `store: false`；DeepSeek 使用 Chat Completions API，默认模型为 `deepseek-v4-flash`。只有当前卡片或点击圆点的代码行会发送给所选服务。两个 API Key 分别保存在 VS Code SecretStorage。
 
+点击代码行左侧的蓝绿色圆点打开行解释后，可以在悬浮窗底部继续提问；按 Enter 或点击“发送”即可追加问答。
+
 代码卡片和解释记录固定保存在 `D:\codeLearn`。相同文件、选区和源码再次学习时，会按 AI 服务和模型直接恢复对应记录；API Key 不会写入该目录。
