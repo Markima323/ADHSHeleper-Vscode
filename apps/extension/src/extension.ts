@@ -4,6 +4,7 @@ import { DecorationEngine } from "./decorationEngine.js";
 import { AiClient } from "./geminiClient.js";
 import { LearningPanel } from "./learningPanel.js";
 import { LearningRecordStore, getLearningRecordDirectory } from "./learningRecordStore.js";
+import type { OpenedLearningRecord } from "./learningRecordStore.js";
 import {
   buildLearningSession,
   sourceForCurrentSymbol,
@@ -58,6 +59,7 @@ export function activate(context: vscode.ExtensionContext): void {
         return;
       }
       const freshSession = buildLearningSession(editor.document, source);
+      let record: OpenedLearningRecord | undefined;
       try {
         const sourceIdentity = [
           source.range.start.line,
@@ -66,13 +68,13 @@ export function activate(context: vscode.ExtensionContext): void {
           source.range.end.character,
           source.code,
         ].join("\u0000");
-        const record = await records.open(editor.document.uri.toString(), sourceIdentity, freshSession);
-        LearningPanel.open(context, record.session, ai, record);
+        record = await records.open(editor.document.uri.toString(), sourceIdentity, freshSession);
       } catch (error) {
         const detail = error instanceof Error ? error.message : String(error);
         void vscode.window.showWarningMessage(`无法使用 ${getLearningRecordDirectory()} 的本地记录：${detail}`);
-        LearningPanel.open(context, freshSession, ai);
       }
+      await enterLearningLayout(editor.document.uri);
+      LearningPanel.open(context, record?.session ?? freshSession, ai, record);
     } catch (error) {
       const detail = error instanceof Error ? error.message : String(error);
       void vscode.window.showErrorMessage(`ADHD Code Focus 无法打开学习面板：${detail}`);
@@ -144,3 +146,12 @@ export function activate(context: vscode.ExtensionContext): void {
 }
 
 export function deactivate(): void {}
+
+async function enterLearningLayout(sourceUri: vscode.Uri): Promise<void> {
+  await vscode.commands.executeCommand("workbench.action.closeSidebar");
+  const sourceTabs = vscode.window.tabGroups.all.flatMap((group) => group.tabs).filter((tab) =>
+    tab.input instanceof vscode.TabInputText && tab.input.uri.toString() === sourceUri.toString(),
+  );
+  if (sourceTabs.length > 0) await vscode.window.tabGroups.close(sourceTabs, true);
+  await vscode.commands.executeCommand("workbench.action.joinAllGroups");
+}

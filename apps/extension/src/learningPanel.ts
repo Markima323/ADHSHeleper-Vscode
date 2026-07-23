@@ -22,7 +22,7 @@ export class LearningPanel {
     const panel = vscode.window.createWebviewPanel(
       "adhdCodeFocus.learning",
       "ADHD Code Focus · 学习模式",
-      vscode.ViewColumn.Beside,
+      vscode.ViewColumn.Active,
       { enableScripts: true, retainContextWhenHidden: true, localResourceRoots: [vscode.Uri.joinPath(context.extensionUri, "media")] },
     );
     const requestCache = new Map<string, Promise<string>>();
