@@ -36,7 +36,7 @@ npm.cmd run build
 npm.cmd run package
 ```
 
-输出位于 `apps/extension/adhd-code-focus-0.4.0.vsix`。
+输出位于 `apps/extension/adhd-code-focus-0.4.1.vsix`。
 
 ## Gemini 解释
 
@@ -61,7 +61,7 @@ npm.cmd run package
 
 ## 行级解释与自动朗读
 
-- 设置 `adhdCodeFocus.tts.autoPlay` 控制卡片是否自动朗读，设置变化会同步到已打开的学习面板。
+- “ADHD Focus: 专注控制”面板中的自动朗读开关控制卡片是否自动朗读，并与 `adhdCodeFocus.tts.autoPlay` 设置双向同步。
 - 鼠标悬停代码行时，左侧显示蓝绿色圆点；点击后只把这一行发送给 Gemini。
 - 返回结果显示在页面右侧的悬浮窗，可拖动标题栏移动位置。
 - 行级解释同样保存在 `D:\codeLearn`，再次点击优先读取本地记录。

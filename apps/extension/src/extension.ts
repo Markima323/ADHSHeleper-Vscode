@@ -14,7 +14,8 @@ export function activate(context: vscode.ExtensionContext): void {
   const records = new LearningRecordStore();
   const controls = new ControlViewProvider(() => {
     const editor = vscode.window.activeTextEditor;
-    return { enabled: editor ? engine.isEnabled(editor) : false, hasEditor: Boolean(editor) };
+    const autoPlay = vscode.workspace.getConfiguration("adhdCodeFocus").get("tts.autoPlay", true);
+    return { enabled: editor ? engine.isEnabled(editor) : false, hasEditor: Boolean(editor), autoPlay };
   });
   const status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
   status.command = "adhdCodeFocus.toggle";
@@ -23,7 +24,7 @@ export function activate(context: vscode.ExtensionContext): void {
   const updateStatus = (editor = vscode.window.activeTextEditor): void => {
     status.text = editor && engine.isEnabled(editor) ? "$(eye) Focus" : "$(eye-closed) Focus";
     status.show();
-    controls.update(editor ? engine.isEnabled(editor) : false, Boolean(editor));
+    controls.update();
   };
   const refreshActive = (): void => {
     const editor = vscode.window.activeTextEditor;
