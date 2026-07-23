@@ -73,6 +73,19 @@ export function sourceForSelectionOrDocument(editor: vscode.TextEditor): Learnin
   return { range, code: editor.document.getText(range) };
 }
 
+export function sourceFromLineToDocumentEnd(editor: vscode.TextEditor, line = editor.selection.active.line): LearningSource {
+  const document = editor.document;
+  const startLine = Math.max(0, Math.min(line, document.lineCount - 1));
+  const lastLine = document.lineCount - 1;
+  const range = new vscode.Range(
+    startLine,
+    0,
+    lastLine,
+    document.lineAt(lastLine).text.length,
+  );
+  return { range, code: document.getText(range) };
+}
+
 function fullDocumentRange(document: vscode.TextDocument): vscode.Range {
   const lastLine = document.lineCount - 1;
   return new vscode.Range(0, 0, lastLine, document.lineAt(lastLine).text.length);

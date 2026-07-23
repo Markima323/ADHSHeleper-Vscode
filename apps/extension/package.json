@@ -2,7 +2,7 @@
   "name": "adhd-code-focus",
   "displayName": "ADHD Code Focus",
   "description": "ADHD 友好的代码视觉锚点、分块学习、德语朗读与点击填空。",
-  "version": "0.5.1",
+  "version": "0.6.0",
   "publisher": "adhd-code-focus",
   "private": true,
   "license": "MIT",
@@ -14,7 +14,8 @@
     "onView:adhdCodeFocus.controls",
     "onCommand:adhdCodeFocus.toggle",
     "onCommand:adhdCodeFocus.startLearningSelection",
-    "onCommand:adhdCodeFocus.startLearningSymbol"
+    "onCommand:adhdCodeFocus.startLearningSymbol",
+    "onCommand:adhdCodeFocus.startLearningFromLine"
   ],
   "main": "./dist/extension.js",
   "files": ["dist", "media", "resources", "README.md", "CHANGELOG.md", "LICENSE"],
@@ -39,6 +40,7 @@
       { "command": "adhdCodeFocus.toggle", "title": "ADHD Code Focus: Toggle" },
       { "command": "adhdCodeFocus.startLearningSelection", "title": "ADHD Code Focus: Start Learning from Selection" },
       { "command": "adhdCodeFocus.startLearningSymbol", "title": "ADHD Code Focus: Start Learning from Current Symbol" },
+      { "command": "adhdCodeFocus.startLearningFromLine", "title": "从此行开始学习" },
       { "command": "adhdCodeFocus.previewIntensity", "title": "ADHD Code Focus: Preview Intensity" },
       { "command": "adhdCodeFocus.resetLocalProgress", "title": "ADHD Code Focus: Reset Local Progress" },
       { "command": "adhdCodeFocus.setGeminiApiKey", "title": "ADHD Code Focus: Set Gemini API Key" },
@@ -47,6 +49,15 @@
       { "command": "adhdCodeFocus.clearDeepSeekApiKey", "title": "ADHD Code Focus: Clear DeepSeek API Key" },
       { "command": "adhdCodeFocus.openLearningRecords", "title": "ADHD Code Focus: Open Learning Records Folder" }
     ],
+    "menus": {
+      "editor/context": [
+        {
+          "command": "adhdCodeFocus.startLearningFromLine",
+          "when": "editorTextFocus && !editorReadonly",
+          "group": "navigation@20"
+        }
+      ]
+    },
     "keybindings": [
       { "command": "adhdCodeFocus.toggle", "key": "ctrl+alt+b", "mac": "cmd+alt+b" },
       { "command": "adhdCodeFocus.startLearningSelection", "key": "ctrl+alt+l", "mac": "cmd+alt+l", "when": "editorTextFocus" }

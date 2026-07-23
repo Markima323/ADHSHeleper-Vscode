@@ -4,7 +4,12 @@ import { DecorationEngine } from "./decorationEngine.js";
 import { AiClient } from "./geminiClient.js";
 import { LearningPanel } from "./learningPanel.js";
 import { LearningRecordStore, getLearningRecordDirectory } from "./learningRecordStore.js";
-import { buildLearningSession, sourceForCurrentSymbol, sourceForSelectionOrDocument } from "./session.js";
+import {
+  buildLearningSession,
+  sourceForCurrentSymbol,
+  sourceForSelectionOrDocument,
+  sourceFromLineToDocumentEnd,
+} from "./session.js";
 
 export function activate(context: vscode.ExtensionContext): void {
   // v0.2.2+: learning records live exclusively in D:\codeLearn.
@@ -36,14 +41,18 @@ export function activate(context: vscode.ExtensionContext): void {
     if (editor) engine.schedule(editor);
     updateStatus(editor);
   };
-  const startLearning = async (mode: "selection" | "symbol"): Promise<void> => {
+  const startLearning = async (mode: "selection" | "symbol" | "line"): Promise<void> => {
     const editor = vscode.window.activeTextEditor;
     if (!editor) {
       void vscode.window.showInformationMessage("请先打开一个代码文件，再开始学习。");
       return;
     }
     try {
-      const source = mode === "symbol" ? await sourceForCurrentSymbol(editor) : sourceForSelectionOrDocument(editor);
+      const source = mode === "symbol"
+        ? await sourceForCurrentSymbol(editor)
+        : mode === "line"
+          ? sourceFromLineToDocumentEnd(editor)
+          : sourceForSelectionOrDocument(editor);
       if (!source.code.trim()) {
         void vscode.window.showInformationMessage("请选择包含代码的范围后再开始学习。");
         return;
@@ -86,6 +95,7 @@ export function activate(context: vscode.ExtensionContext): void {
     }),
     vscode.commands.registerCommand("adhdCodeFocus.startLearningSelection", () => startLearning("selection")),
     vscode.commands.registerCommand("adhdCodeFocus.startLearningSymbol", () => startLearning("symbol")),
+    vscode.commands.registerCommand("adhdCodeFocus.startLearningFromLine", () => startLearning("line")),
     vscode.commands.registerCommand("adhdCodeFocus.previewIntensity", () => {
       void vscode.commands.executeCommand("workbench.action.openSettings", "@ext:adhd-code-focus.adhd-code-focus boldRatio");
     }),
