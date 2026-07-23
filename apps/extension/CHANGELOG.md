@@ -1,5 +1,10 @@
 # Changelog
 
+## 0.5.1
+
+- 在 AI 选择框下方加入当前服务的 API 密钥管理框。
+- 支持显示、隐藏、添加和修改 Gemini / DeepSeek 密钥，仍使用 VS Code SecretStorage 保存。
+
 ## 0.5.0
 
 - 在“专注控制”面板中加入 Gemini / DeepSeek AI 服务下拉框。

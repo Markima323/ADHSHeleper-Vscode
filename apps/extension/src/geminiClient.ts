@@ -29,6 +29,16 @@ export class AiClient {
     return Boolean(await this.context.secrets.get(secrets[provider]));
   }
 
+  async getApiKey(provider = this.getIdentity().provider): Promise<string> {
+    return await this.context.secrets.get(secrets[provider]) ?? "";
+  }
+
+  async saveApiKey(provider: AiProvider, value: string): Promise<void> {
+    const apiKey = value.trim();
+    if (apiKey.length < 10) throw new Error("API Key 长度似乎不正确。");
+    await this.context.secrets.store(secrets[provider], apiKey);
+  }
+
   async configureApiKey(provider = this.getIdentity().provider): Promise<boolean> {
     const label = provider === "deepseek" ? "DeepSeek" : "Gemini";
     const value = await vscode.window.showInputBox({
@@ -40,7 +50,7 @@ export class AiClient {
       validateInput: (input) => input.trim().length < 10 ? "API Key 长度似乎不正确。" : undefined,
     });
     if (!value) return false;
-    await this.context.secrets.store(secrets[provider], value.trim());
+    await this.saveApiKey(provider, value);
     return true;
   }
 

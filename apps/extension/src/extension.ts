@@ -12,12 +12,16 @@ export function activate(context: vscode.ExtensionContext): void {
   const engine = new DecorationEngine();
   const ai = new AiClient(context);
   const records = new LearningRecordStore();
-  const controls = new ControlViewProvider(() => {
-    const editor = vscode.window.activeTextEditor;
-    const autoPlay = vscode.workspace.getConfiguration("adhdCodeFocus").get("tts.autoPlay", true);
-    const aiProvider = vscode.workspace.getConfiguration("adhdCodeFocus").get<"gemini" | "deepseek">("ai.provider", "gemini");
-    return { enabled: editor ? engine.isEnabled(editor) : false, hasEditor: Boolean(editor), autoPlay, aiProvider };
-  });
+  const controls = new ControlViewProvider(
+    () => {
+      const editor = vscode.window.activeTextEditor;
+      const autoPlay = vscode.workspace.getConfiguration("adhdCodeFocus").get("tts.autoPlay", true);
+      const aiProvider = vscode.workspace.getConfiguration("adhdCodeFocus").get<"gemini" | "deepseek">("ai.provider", "gemini");
+      return { enabled: editor ? engine.isEnabled(editor) : false, hasEditor: Boolean(editor), autoPlay, aiProvider };
+    },
+    (provider) => ai.getApiKey(provider),
+    (provider, value) => ai.saveApiKey(provider, value),
+  );
   const status = vscode.window.createStatusBarItem(vscode.StatusBarAlignment.Right, 100);
   status.command = "adhdCodeFocus.toggle";
   status.tooltip = "切换当前编辑器的 ADHD 部分加粗";

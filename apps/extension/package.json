@@ -2,7 +2,7 @@
   "name": "adhd-code-focus",
   "displayName": "ADHD Code Focus",
   "description": "ADHD 友好的代码视觉锚点、分块学习、德语朗读与点击填空。",
-  "version": "0.5.0",
+  "version": "0.5.1",
   "publisher": "adhd-code-focus",
   "private": true,
   "license": "MIT",
