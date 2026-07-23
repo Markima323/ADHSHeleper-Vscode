@@ -1,0 +1,105 @@
+{
+  "name": "adhd-code-focus",
+  "displayName": "ADHD Code Focus",
+  "description": "ADHD 友好的代码视觉锚点、分块学习、德语朗读与点击填空。",
+  "version": "0.1.1",
+  "publisher": "adhd-code-focus",
+  "private": true,
+  "license": "MIT",
+  "engines": { "vscode": "^1.90.0" },
+  "categories": ["Education", "Visualization"],
+  "keywords": ["ADHD", "focus", "learning", "bionic reading", "German"],
+  "activationEvents": [
+    "onStartupFinished",
+    "onView:adhdCodeFocus.controls",
+    "onCommand:adhdCodeFocus.toggle",
+    "onCommand:adhdCodeFocus.startLearningSelection",
+    "onCommand:adhdCodeFocus.startLearningSymbol"
+  ],
+  "main": "./dist/extension.js",
+  "files": ["dist", "media", "resources", "README.md", "CHANGELOG.md", "LICENSE"],
+  "scripts": {
+    "build": "esbuild src/extension.ts --bundle --platform=node --format=cjs --external:vscode --outfile=dist/extension.js --sourcemap && npm run copy-webview",
+    "copy-webview": "node scripts/copy-webview.mjs",
+    "typecheck": "tsc -p tsconfig.json --noEmit",
+    "package": "vsce package --no-dependencies"
+  },
+  "dependencies": {
+    "@adhd-code-focus/core": "0.1.0"
+  },
+  "devDependencies": {
+    "@types/node": "^22.10.5",
+    "@types/vscode": "^1.90.0",
+    "@vscode/vsce": "^3.2.1",
+    "esbuild": "^0.24.2"
+  },
+  "contributes": {
+    "commands": [
+      { "command": "adhdCodeFocus.toggle", "title": "ADHD Code Focus: Toggle" },
+      { "command": "adhdCodeFocus.startLearningSelection", "title": "ADHD Code Focus: Start Learning from Selection" },
+      { "command": "adhdCodeFocus.startLearningSymbol", "title": "ADHD Code Focus: Start Learning from Current Symbol" },
+      { "command": "adhdCodeFocus.previewIntensity", "title": "ADHD Code Focus: Preview Intensity" },
+      { "command": "adhdCodeFocus.resetLocalProgress", "title": "ADHD Code Focus: Reset Local Progress" }
+    ],
+    "keybindings": [
+      { "command": "adhdCodeFocus.toggle", "key": "ctrl+alt+b", "mac": "cmd+alt+b" },
+      { "command": "adhdCodeFocus.startLearningSelection", "key": "ctrl+alt+l", "mac": "cmd+alt+l", "when": "editorTextFocus" }
+    ],
+    "viewsContainers": {
+      "activitybar": [
+        {
+          "id": "adhdCodeFocus",
+          "title": "ADHD Focus",
+          "icon": "resources/focus.svg"
+        }
+      ]
+    },
+    "views": {
+      "adhdCodeFocus": [
+        {
+          "type": "webview",
+          "id": "adhdCodeFocus.controls",
+          "name": "专注控制"
+        }
+      ]
+    },
+    "configuration": {
+      "title": "ADHD Code Focus",
+      "properties": {
+        "adhdCodeFocus.enabled": {
+          "type": "boolean", "default": true, "description": "启用当前活动编辑器的部分加粗。"
+        },
+        "adhdCodeFocus.boldRatio": {
+          "type": "number", "default": 0.42, "minimum": 0.25, "maximum": 0.6, "description": "每个标识符子词前段的加粗比例。"
+        },
+        "adhdCodeFocus.minTokenLength": {
+          "type": "integer", "default": 3, "minimum": 1, "maximum": 12, "description": "短于此长度的子词不加粗。"
+        },
+        "adhdCodeFocus.maxBoldChars": {
+          "type": "integer", "default": 6, "minimum": 1, "maximum": 12, "description": "每个子词最多加粗的字符数。"
+        },
+        "adhdCodeFocus.includeComments": {
+          "type": "boolean", "default": true, "description": "对注释中的自然语言词应用部分加粗。"
+        },
+        "adhdCodeFocus.includeStrings": {
+          "type": "boolean", "default": false, "description": "对字符串中的词应用部分加粗。"
+        },
+        "adhdCodeFocus.visibleRangeOnly": {
+          "type": "boolean", "default": true, "description": "只处理编辑器可视范围（推荐）。"
+        },
+        "adhdCodeFocus.learning.maxChunkLines": {
+          "type": "integer", "default": 24, "minimum": 6, "maximum": 80, "description": "每张学习卡片的最大行数。"
+        },
+        "adhdCodeFocus.learning.blankCount": {
+          "type": "integer", "default": 10, "minimum": 1, "maximum": 10, "description": "每张卡片最多抽取的词元数。"
+        },
+        "adhdCodeFocus.tts.locale": {
+          "type": "string", "default": "de-DE", "description": "朗读使用的德语区域。"
+        },
+        "adhdCodeFocus.tts.rate": {
+          "type": "number", "default": 0.9, "minimum": 0.5, "maximum": 1.5, "description": "朗读速度。"
+        }
+      }
+    }
+  }
+}

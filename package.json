@@ -1,0 +1,19 @@
+{
+  "name": "adhd-code-focus",
+  "version": "0.1.0",
+  "private": true,
+  "workspaces": [
+    "apps/*",
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build -w @adhd-code-focus/core && npm run build -w adhd-code-focus-webview && npm run build -w adhd-code-focus",
+    "test": "npm run build -w @adhd-code-focus/core && npm run test -w @adhd-code-focus/core && npm run test -w adhd-code-focus-webview",
+    "typecheck": "npm run build -w @adhd-code-focus/core && npm run typecheck -w adhd-code-focus-webview && npm run typecheck -w adhd-code-focus",
+    "package": "npm run build && npm run package -w adhd-code-focus"
+  },
+  "devDependencies": {
+    "typescript": "^5.7.3",
+    "vitest": "^2.1.8"
+  }
+}

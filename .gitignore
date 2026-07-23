@@ -1,0 +1,8 @@
+node_modules/
+dist/
+coverage/
+*.vsix
+apps/extension/media/
+.DS_Store
+*.log
+*.tsbuildinfo
