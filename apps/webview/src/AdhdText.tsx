@@ -1,4 +1,4 @@
-import type { OffsetRange, TokenSegment } from "@adhd-code-focus/core";
+import type { OffsetRange, SyntaxKind, TokenSegment } from "@adhd-code-focus/core";
 
 type Props = {
   segments: TokenSegment[];
@@ -11,12 +11,16 @@ export function AdhdText({ segments, blankBySegment }: Props) {
     if (blank) {
       return <span
         key={segment.id}
-        className={`blank ${blank.filled ? "filled" : ""} ${blank.current ? "current" : ""}`}
+        className={`blank ${syntaxClass(segment.syntaxKind)} ${blank.filled ? "filled" : ""} ${blank.current ? "current" : ""}`}
         aria-label={`代码空位${blank.current ? "，当前待填写" : ""}`}
       >{blank.filled ? renderBoldText(blank.text, segment.boldRanges) : " "}</span>;
     }
-    return <span key={segment.id}>{renderBoldText(segment.text, segment.boldRanges)}</span>;
+    return <span key={segment.id} className={syntaxClass(segment.syntaxKind)}>{renderBoldText(segment.text, segment.boldRanges)}</span>;
   })}</code>;
+}
+
+function syntaxClass(kind: SyntaxKind | undefined): string {
+  return kind && kind !== "plain" ? `syntax-${kind}` : "";
 }
 
 function renderBoldText(text: string, ranges: OffsetRange[]) {

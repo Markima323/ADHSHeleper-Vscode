@@ -1,5 +1,18 @@
 export type OffsetRange = { start: number; end: number };
 
+export type SyntaxKind =
+  | "plain"
+  | "keyword"
+  | "function"
+  | "method"
+  | "identifier"
+  | "type"
+  | "property"
+  | "string"
+  | "number"
+  | "comment"
+  | "operator";
+
 export type SourceRangeDto = {
   startLine: number;
   startCharacter: number;
@@ -12,9 +25,10 @@ export type TokenSegment = {
   text: string;
   kind: "plain" | "word" | "blank";
   boldRanges: OffsetRange[];
+  syntaxKind?: SyntaxKind;
 };
 
-export type ChoiceToken = { id: string; text: string };
+export type ChoiceToken = { id: string; text: string; syntaxKind?: SyntaxKind };
 
 export type BlankToken = {
   id: string;

@@ -1,5 +1,5 @@
 import { calculateBoldRanges, type BoldOptions } from "./identifier.js";
-import type { OffsetRange, TokenSegment } from "./types.js";
+import type { OffsetRange, SyntaxKind, TokenSegment } from "./types.js";
 
 export type ScannedWord = {
   text: string;
@@ -107,27 +107,106 @@ export function getBoldOffsets(
 }
 
 export function buildTokenSegments(code: string, boldOptions: BoldOptions): TokenSegment[] {
-  const words = scanCodeWords(code, {
-    includeComments: true,
-    includeStrings: false,
-    includeKeywords: true,
-  });
   const segments: TokenSegment[] = [];
-  let cursor = 0;
-  words.forEach((word, wordIndex) => {
-    if (word.start > cursor) {
-      segments.push({ id: `p-${cursor}`, text: code.slice(cursor, word.start), kind: "plain", boldRanges: [] });
+  let index = 0;
+  while (index < code.length) {
+    const current = code[index] ?? "";
+    const next = code[index + 1] ?? "";
+    if (current === "/" && next === "/") {
+      const end = findLineEnd(code, index);
+      pushDisplaySegment(segments, code.slice(index, end), index, "plain", "comment", boldInNaturalText(code.slice(index, end), boldOptions));
+      index = end;
+      continue;
     }
-    segments.push({
-      id: `w-${wordIndex}-${word.start}`,
-      text: word.text,
-      kind: "word",
-      boldRanges: calculateBoldRanges(word.text, boldOptions),
-    });
-    cursor = word.end;
-  });
-  if (cursor < code.length) {
-    segments.push({ id: `p-${cursor}`, text: code.slice(cursor), kind: "plain", boldRanges: [] });
+    if (current === "/" && next === "*") {
+      const closing = code.indexOf("*/", index + 2);
+      const end = closing < 0 ? code.length : closing + 2;
+      pushDisplaySegment(segments, code.slice(index, end), index, "plain", "comment", boldInNaturalText(code.slice(index, end), boldOptions));
+      index = end;
+      continue;
+    }
+    if (["\"", "'", "`"].includes(current)) {
+      const end = findStringEnd(code, index, current);
+      pushDisplaySegment(segments, code.slice(index, end), index, "plain", "string", []);
+      index = end;
+      continue;
+    }
+    const number = code.slice(index).match(/^(?:0[xob][\da-f]+|\d+(?:\.\d+)?)/iu)?.[0];
+    if (number) {
+      pushDisplaySegment(segments, number, index, "plain", "number", []);
+      index += number.length;
+      continue;
+    }
+    wordPattern.lastIndex = index;
+    const word = wordPattern.exec(code);
+    if (word?.index === index) {
+      const text = word[0];
+      const syntaxKind = commonKeywords.has(text) ? "keyword" : classifyIdentifier(code, index, index + text.length, text);
+      pushDisplaySegment(segments, text, index, "word", syntaxKind, calculateBoldRanges(text, boldOptions));
+      index += text.length;
+      continue;
+    }
+    const whitespace = code.slice(index).match(/^\s+/u)?.[0];
+    if (whitespace) {
+      pushDisplaySegment(segments, whitespace, index, "plain", "plain", []);
+      index += whitespace.length;
+      continue;
+    }
+    const operator = code.slice(index).match(/^(?:=>|===|!==|==|!=|<=|>=|\+\+|--|&&|\|\||\?\?|\+=|-=|\*=|\/=|[+\-*/%=<>!&|?:~^]+)/u)?.[0];
+    if (operator) {
+      pushDisplaySegment(segments, operator, index, "plain", "operator", []);
+      index += operator.length;
+      continue;
+    }
+    pushDisplaySegment(segments, current, index, "plain", "plain", []);
+    index++;
   }
   return segments;
+}
+
+function pushDisplaySegment(
+  segments: TokenSegment[],
+  text: string,
+  offset: number,
+  kind: TokenSegment["kind"],
+  syntaxKind: SyntaxKind,
+  boldRanges: OffsetRange[],
+): void {
+  segments.push({ id: `${kind === "word" ? "w" : "p"}-${offset}`, text, kind, boldRanges, syntaxKind });
+}
+
+function classifyIdentifier(code: string, start: number, end: number, text: string): SyntaxKind {
+  const before = code.slice(0, start).trimEnd().slice(-1);
+  const after = code.slice(end).trimStart()[0] ?? "";
+  if (after === "(") return before === "." ? "method" : "function";
+  if (/^\p{Lu}/u.test(text)) return "type";
+  if (before === ".") return "property";
+  return "identifier";
+}
+
+function findLineEnd(code: string, start: number): number {
+  const end = code.indexOf("\n", start);
+  return end < 0 ? code.length : end;
+}
+
+function findStringEnd(code: string, start: number, quote: string): number {
+  let index = start + 1;
+  while (index < code.length) {
+    if (code[index] === "\\") {
+      index += 2;
+      continue;
+    }
+    if (code[index] === quote) return index + 1;
+    index++;
+  }
+  return code.length;
+}
+
+function boldInNaturalText(text: string, options: BoldOptions): OffsetRange[] {
+  return [...text.matchAll(/[$_\p{L}][$_\p{L}\p{N}]*/gu)].flatMap((match) =>
+    calculateBoldRanges(match[0], options).map((range) => ({
+      start: match.index + range.start,
+      end: match.index + range.end,
+    })),
+  );
 }

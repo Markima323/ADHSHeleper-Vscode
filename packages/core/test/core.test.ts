@@ -2,6 +2,7 @@ import { describe, expect, it } from "vitest";
 import {
   buildEnglishNarration,
   buildGeminiExplanationPrompt,
+  buildTokenSegments,
   calculateBoldRanges,
   chunkByLines,
   createClozeQuiz,
@@ -80,5 +81,22 @@ describe("Gemini explanation helpers", () => {
   it("places every Chinese sentence after a full stop on a new line", () => {
     expect(formatExplanationLines("第一句。 第二句。第三句。"))
       .toBe("第一句。\n第二句。\n第三句。");
+  });
+});
+
+describe("syntax-colored learning tokens", () => {
+  it("classifies code and carries colors into cloze choices", () => {
+    const segments = buildTokenSegments(
+      'const total = calculate(items.length, "EUR"); // final value',
+      { boldRatio: 0.42, minTokenLength: 3, maxBoldChars: 6 },
+    );
+    expect(segments.find((item) => item.text === "const")?.syntaxKind).toBe("keyword");
+    expect(segments.find((item) => item.text === "calculate")?.syntaxKind).toBe("function");
+    expect(segments.find((item) => item.text === "length")?.syntaxKind).toBe("property");
+    expect(segments.find((item) => item.text === '"EUR"')?.syntaxKind).toBe("string");
+    expect(segments.find((item) => item.text.startsWith("//"))?.syntaxKind).toBe("comment");
+
+    const quiz = createClozeQuiz(segments, 6, "syntax-seed");
+    expect(quiz.choices.every((choice) => choice.syntaxKind !== undefined)).toBe(true);
   });
 });

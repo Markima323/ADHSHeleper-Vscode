@@ -12,6 +12,7 @@
 - 每张卡片自动使用系统 Web Speech API 进行一次英语代码朗读，朗读期间仍可填空。
 - 可选 Gemini 简洁解释：只发送当前卡片代码，API Key 保存在 VS Code SecretStorage。
 - 学习卡片和 Gemini 解释持久化到 `D:\codeLearn`，相同源码下次直接恢复。
+- 学习代码与候选词使用 VS Code 当前主题的语法类别颜色。
 - VS Code 主题、高对比度、键盘焦点和减少动态效果适配。
 - 最近 200 条学习会话摘要保存在 `globalState`，不保存源码。
 
@@ -34,7 +35,7 @@ npm.cmd run build
 npm.cmd run package
 ```
 
-输出位于 `apps/extension/adhd-code-focus-0.2.5.vsix`。
+输出位于 `apps/extension/adhd-code-focus-0.3.0.vsix`。
 
 ## Gemini 解释
 

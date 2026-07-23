@@ -180,9 +180,10 @@ export function App() {
     <section className="quiz" aria-label="候选词">
       {speaking && <p className="hint" aria-live="polite">正在英语朗读，你可以同时填写空位。</p>}
       <div className="choices">
-        {chunk.quiz.choices.map((choice) => <button
-          key={choice.id}
-          disabled={used.has(choice.id) || quizState.completed}
+          {chunk.quiz.choices.map((choice) => <button
+            key={choice.id}
+            className={choice.syntaxKind && choice.syntaxKind !== "plain" ? `syntax-${choice.syntaxKind}` : undefined}
+            disabled={used.has(choice.id) || quizState.completed}
           onClick={() => onChoice(choice.id)}
         >{choice.text}</button>)}
       </div>

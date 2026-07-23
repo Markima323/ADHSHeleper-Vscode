@@ -5,6 +5,7 @@ import type { LearningSessionDto } from "@adhd-code-focus/core";
 
 const defaultStorageDirectory = resolve("D:\\codeLearn");
 const explanationPromptVersion = 2;
+const cardFormatVersion = 2;
 
 type StoredExplanation = {
   text: string;
@@ -15,6 +16,7 @@ type StoredExplanation = {
 
 type StoredSession = {
   sourceHash: string;
+  cardFormatVersion: number;
   updatedAt: string;
   session: LearningSessionDto;
   explanations: Record<string, StoredExplanation>;
@@ -47,14 +49,19 @@ export class LearningRecordStore {
     const sourceHash = hash(sourceCode);
     const filePath = join(this.storageDirectory, `${sourceUriHash}.json`);
     const record = await readRecord(filePath, sourceUriHash);
-    let stored = record.sessions.find((item) => item.sourceHash === sourceHash);
+    let stored = record.sessions.find((item) =>
+      item.sourceHash === sourceHash && item.cardFormatVersion === cardFormatVersion,
+    );
 
     if (!stored) {
+      const previous = record.sessions.find((item) => item.sourceHash === sourceHash);
+      const migratedExplanations = migrateExplanations(previous, freshSession);
       stored = {
         sourceHash,
+        cardFormatVersion,
         updatedAt: new Date().toISOString(),
         session: freshSession,
-        explanations: {},
+        explanations: migratedExplanations,
       };
       record.sessions.push(stored);
       await writeRecord(filePath, record);
@@ -90,7 +97,9 @@ export class LearningRecordStore {
   ): Promise<void> {
     const operation = this.writeQueue.then(async () => {
       const record = await readRecord(filePath, sourceUriHash);
-      const stored = record.sessions.find((item) => item.sourceHash === sourceHash);
+      const stored = record.sessions.find((item) =>
+        item.sourceHash === sourceHash && item.cardFormatVersion === cardFormatVersion,
+      );
       if (!stored) throw new Error("找不到对应的本地学习会话记录。");
       if (!stored.session.chunks.some((chunk) => chunk.id === chunkId)) {
         throw new Error("本地学习记录中不存在这个代码卡片。");
@@ -142,4 +151,18 @@ function isRecordFile(value: unknown, expectedHash: string): value is RecordFile
 
 function hash(value: string): string {
   return createHash("sha256").update(value).digest("hex");
+}
+
+function migrateExplanations(
+  previous: StoredSession | undefined,
+  freshSession: LearningSessionDto,
+): Record<string, StoredExplanation> {
+  if (!previous) return {};
+  return Object.fromEntries(freshSession.chunks.flatMap((freshChunk) => {
+    const previousChunk = previous.session.chunks.find((chunk) => chunk.code === freshChunk.code);
+    const explanation = previousChunk ? previous.explanations[previousChunk.id] : undefined;
+    return explanation?.promptVersion === explanationPromptVersion
+      ? [[freshChunk.id, explanation] as const]
+      : [];
+  }));
 }

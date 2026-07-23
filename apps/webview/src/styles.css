@@ -35,12 +35,23 @@ h1 { margin: 0; min-width: 0; font-size: clamp(20px, 3vw, 30px); }
 pre { margin: 0; padding: 24px; overflow: auto; min-height: 180px; background: var(--vscode-textCodeBlock-background); font: 14px/1.75 var(--vscode-editor-font-family, monospace); tab-size: var(--vscode-editor-tab-size, 4); }
 .code-content { white-space: pre; }
 .code-content strong { font-weight: 750; color: inherit; }
+.syntax-keyword { --syntax-color: var(--vscode-symbolIcon-keywordForeground, #c586c0); color: var(--syntax-color); }
+.syntax-function { --syntax-color: var(--vscode-symbolIcon-functionForeground, #dcdcaa); color: var(--syntax-color); }
+.syntax-method { --syntax-color: var(--vscode-symbolIcon-methodForeground, var(--vscode-symbolIcon-functionForeground, #dcdcaa)); color: var(--syntax-color); }
+.syntax-identifier { --syntax-color: var(--vscode-symbolIcon-variableForeground, #9cdcfe); color: var(--syntax-color); }
+.syntax-type { --syntax-color: var(--vscode-symbolIcon-classForeground, #4ec9b0); color: var(--syntax-color); }
+.syntax-property { --syntax-color: var(--vscode-symbolIcon-propertyForeground, #9cdcfe); color: var(--syntax-color); }
+.syntax-string { --syntax-color: var(--vscode-symbolIcon-stringForeground, #ce9178); color: var(--syntax-color); }
+.syntax-number { --syntax-color: var(--vscode-symbolIcon-numberForeground, #b5cea8); color: var(--syntax-color); }
+.syntax-comment { --syntax-color: var(--vscode-gitDecoration-ignoredResourceForeground, #6a9955); color: var(--syntax-color); }
+.syntax-operator { --syntax-color: var(--vscode-symbolIcon-operatorForeground, var(--vscode-editor-foreground)); color: var(--syntax-color); }
 .blank { display: inline-block; min-width: 3.4em; height: 1.4em; margin: 0 2px; vertical-align: -.18em; border-bottom: 2px solid var(--vscode-descriptionForeground); text-align: center; }
 .blank.current { border-color: var(--accent); background: color-mix(in srgb, var(--accent) 12%, transparent); }
 .blank.filled { min-width: 0; border-bottom-color: var(--vscode-testing-iconPassed, #4caf50); }
 .quiz { margin-top: 16px; padding: 20px; }
 .choices { display: flex; flex-wrap: wrap; gap: 9px; min-height: 40px; }
 .choices button { min-height: 38px; padding: 7px 13px; border: 1px solid var(--vscode-button-border, var(--border)); border-radius: 6px; color: var(--vscode-button-secondaryForeground); background: var(--vscode-button-secondaryBackground); cursor: pointer; }
+.choices button[class*="syntax-"] { color: var(--syntax-color); font-weight: 650; }
 .choices button:hover:not(:disabled) { background: var(--vscode-button-secondaryHoverBackground); }
 .choices button:disabled { opacity: .28; cursor: default; }
 .feedback, .hint { min-height: 22px; margin: 15px 0 8px; color: var(--vscode-descriptionForeground); }

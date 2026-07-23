@@ -48,9 +48,13 @@ export function createClozeQuiz(
     text: segment.text,
     segmentIndex,
   }));
-  const choices: ChoiceToken[] = blanks.map((blank) => ({
-    id: blank.answerChoiceId,
-    text: blank.text,
-  }));
+  const choices: ChoiceToken[] = blanks.map((blank) => {
+    const syntaxKind = segments[blank.segmentIndex]?.syntaxKind;
+    return {
+      id: blank.answerChoiceId,
+      text: blank.text,
+      ...(syntaxKind ? { syntaxKind } : {}),
+    };
+  });
   return { seed, blanks, choices: shuffle(choices, random), maxBlankCount };
 }
